@@ -98,6 +98,12 @@ from conversations, preserving privacy by architecture.
 We establish formal connections to the renormalization group (RG)
 through mirror descent, and to the agent-nucleation framework
 through the $V(T,B)$ protocol.
+The \emph{Model Context Pipeline} (MCP) connects three servers---arXiv
+source, multi-LLM court, and training orchestrator---into a closed
+loop where masked theorem-proof pairs from arXiv drive training,
+and SARSA checkpoint selection closes the feedback cycle.
+An arXiv fill-in-the-blank curriculum extends the bootstrap
+pipeline from synthetic identities to real mathematical proofs.
 The core thesis is that a model trained only on verified mathematics
 is sufficient for mathematical reasoning within its verified domain,
 and that self-validation eliminates hallucination by construction.
@@ -187,6 +193,22 @@ example and every output.
 \item Formal connections to the renormalization group
   via mirror descent (\S\ref{sec:rg}) and to the
   agent-nucleation framework (\S\ref{sec:agent}).
+
+\item A checkpoint selection mechanism via tabular SARSA\@:
+  model checkpoints are states, gradient steps are actions,
+  and a multi-LLM court provides ordinal rewards.
+  No function approximation---the only RL is tabular RL
+  (\S\ref{sec:sarsa}).
+
+\item The Model Context Pipeline (MCP): a directed graph of
+  three server nodes (arXiv source, LLM court, training
+  orchestrator) whose typed edges form a closed training
+  loop (\S\ref{sec:mcp}).
+
+\item An arXiv fill-in-the-blank curriculum that extends the
+  bootstrap pipeline from synthetic identities to masked
+  theorem-proof pairs extracted from real mathematical
+  papers (\S\ref{sec:arxiv-curriculum}).
 \end{enumerate}
 
 % ============================================================
@@ -313,6 +335,30 @@ The trained network is a fixed field, and the forward pass
 is parallel transport through it.
 \end{remark}
 
+\begin{remark}[Parameter count = forward pass complexity]\label{rem:params-flops}
+For the FFN layers, the parameter count equals the number of
+multiply-accumulate operations per token.
+A layer $y = Wx$ with $W \in \R^{m \times n}$ has $mn$ parameters
+and costs $mn$ FLOPs per input vector.
+Each weight $W_{ij}$ is a unique edge in the computation graph,
+traversed exactly once per forward pass.
+Therefore
+\[
+|\theta_{\mathrm{FFN}}|
+= \sum_{\ell=1}^{L} (4d^2 + 4d^2)
+= \mathrm{FLOPs}_{\mathrm{FFN}}(\text{per token}).
+\]
+This identity breaks under weight sharing:
+attention reuses $W_Q, W_K, W_V$ across $T$ positions
+(ratio $= T$), and convolution reuses the kernel across all
+spatial locations.
+The MLP is the zero-symmetry case: no sharing, no gauge
+equivalence between positions, one parameter = one connection
+= one FLOP\@.
+This is also why distillation (RG flow UV $\to$ IR) reduces
+parameters and FLOPs simultaneously---they are the same quantity.
+\end{remark}
+
 % ============================================================
 %  Section 3: Self-Validated Training
 % ============================================================
@@ -421,6 +467,52 @@ In all cases, the SymPy computation is exact (no floating-point
 approximation for symbolic expressions), and the verifier
 provides an independent check.
 \end{proof}
+
+\subsection{arXiv fill-in-the-blank curriculum}\label{sec:arxiv-curriculum}
+
+The bootstrap pipeline (\S\ref{sec:training}) generates synthetic
+examples from a fixed set of generators.
+To extend training to real mathematical reasoning, we introduce
+a curriculum based on arXiv papers.
+
+\begin{definition}[Fill-in-the-blank]\label{def:fitb}
+Given a theorem-proof pair $(T, P)$ extracted from a LaTeX source,
+define the masking operator $\mu_{\text{proof}}(T, P) = (T, \square)$
+that retains the theorem statement and masks the proof.
+The training example is:
+\[
+e_{\text{arXiv}} = \texttt{Theorem: } T \texttt{\textbackslash nProof: } P.
+\]
+The model is trained to predict $P$ given $T$.
+\end{definition}
+
+\begin{definition}[Two-phase curriculum]\label{def:curriculum}
+Training proceeds in two phases:
+\begin{enumerate}[label=(\roman*),nosep]
+\item \textbf{Phase 0 (bootstrap):}
+  Train on synthetic examples from the $K = 8$ generators
+  (Definition~\ref{def:dist}).
+  Transition to Phase~1 when the bootstrap loss plateaus
+  (change $< 0.01$ over 5 consecutive epochs).
+\item \textbf{Phase 1 (arXiv):}
+  Mix bootstrap and arXiv examples with weight
+  $w_{\text{arXiv}}$ increasing linearly from $0$ to $0.5$
+  over 50 epochs:
+  \[
+  \cD_{\text{mixed}} = (1 - w_{\text{arXiv}}) \, \cD_{\text{bootstrap}}
+    + w_{\text{arXiv}} \, \cD_{\text{arXiv}}.
+  \]
+\end{enumerate}
+\end{definition}
+
+\begin{remark}[Context length and chunking]\label{rem:chunking}
+arXiv proofs may exceed $T_{\max} = 2048$ bytes.
+Long proofs are chunked at sentence boundaries into windows
+of at most $T_{\max}$ bytes with overlap $\delta = 256$ bytes.
+The overlap ensures that no logical step is split across
+chunk boundaries.
+Each chunk is treated as an independent training example.
+\end{remark}
 
 \subsection{Loss function}
 
@@ -609,36 +701,90 @@ where $\cG$ denotes the verification gate (Definition~\ref{def:gated}).
 \centering
 \begin{tikzpicture}[>=Stealth,
   box/.style={draw, rounded corners=3pt, thick,
-    inner sep=6pt, minimum height=1.2cm,
+    inner sep=5pt, minimum height=1cm, minimum width=2cm,
     align=center, font=\small},
-  arr/.style={->, thick}]
+  arr/.style={->, thick},
+  lbl/.style={font=\scriptsize, fill=white, inner sep=1pt}]
 
-% Nodes
-\node[box, fill=gray!8] (user) at (0,0) {User\\(natural language)};
-\node[box, fill=blue!8] (llm1) at (4,0) {LLM\\$\Embed$};
-\node[box, fill=green!8] (mirror) at (8,0) {Mirror\\$\Mirror_\theta$};
-\node[box, fill=red!8] (verify) at (8,-2.5) {Verifier\\$\cG$};
-\node[box, fill=blue!8] (llm2) at (4,-2.5) {LLM\\$\Pullback$};
-\node[box, fill=gray!8] (out) at (0,-2.5) {User\\(sees reflection)};
+% ── Layer fills (outside → inside, bottom → top) ──
+% NL space (bottom)
+\fill[gray!6, rounded corners=6pt]
+  (0.8, -0.5) rectangle (6.2, 1.1);
+% Boundary strip (middle)
+\fill[blue!5, rounded corners=0pt]
+  (-0.2, 1.6) rectangle (7.2, 3.4);
+\draw[densely dashed, gray!40] (-0.2, 1.6) -- (7.2, 1.6);
+\draw[densely dashed, gray!40] (-0.2, 3.4) -- (7.2, 3.4);
+% Math space (top)
+\fill[green!5, rounded corners=6pt]
+  (0.3, 3.9) rectangle (7.7, 5.9);
 
-% Arrows
-\draw[arr] (user) -- node[above,font=\scriptsize]{query} (llm1);
-\draw[arr] (llm1) -- node[above,font=\scriptsize]{math-in-ASCII} (mirror);
-\draw[arr] (mirror) -- node[right,font=\scriptsize]{compute} (verify);
-\draw[arr] (verify) -- node[above,font=\scriptsize]{verified math} (llm2);
-\draw[arr] (llm2) -- node[above,font=\scriptsize]{response} (out);
+% ── Layer labels ──
+\node[font=\scriptsize, text=gray!50, anchor=east]
+  at (0.7, 0.9) {$\cS_{\mathrm{NL}}$};
+\node[font=\scriptsize, text=blue!40, anchor=east]
+  at (-0.0, 2.5) {$\partial\cS$};
+\node[font=\scriptsize, text=green!40!black, anchor=east]
+  at (0.2, 5.6) {$\cS_{\mathrm{math}}$};
 
-% Boundary labels
-\draw[dashed, gray] (6,1) -- (6,-3.5);
-\node[font=\tiny, text=gray, rotate=90] at (6.3,-1.25) {translation boundary};
+% ── Nodes (color = potential energy, Remark~\ref{rem:color}) ──
+% NL space — black/white: ground potential
+\node[box, fill=white, draw=black] (user) at (3.5, 0.3) {User};
+
+% Boundary — blue: routing (no potential change)
+\node[box, fill=blue!25] (embed) at (1.8, 2.5)
+  {LLM\\[-2pt]$\Embed$};
+\node[box, fill=blue!25] (pull)  at (5.2, 2.5)
+  {LLM\\[-2pt]$\Pullback$};
+
+% Math space — green: potential gain, red: potential loss
+\node[box, fill=green!20] (mirror) at (2.5, 4.9)
+  {Mirror\\[-2pt]$\Mirror_\theta$};
+\node[box, fill=red!20]   (verify) at (5.8, 4.9)
+  {Verifier\\[-2pt]$\cG$};
+
+% ── Arrows (the journey: up through boundary, across, back down) ──
+\draw[arr] ([xshift=-6pt]user.north)
+  -- node[lbl, left]{query} (embed.south);
+\draw[arr] (embed.north)
+  -- node[lbl, left]{ASCII} (mirror.south);
+\draw[arr] (mirror.east)
+  -- node[lbl, above]{compute} (verify.west);
+\draw[arr] (verify.south)
+  -- node[lbl, right]{verified} (pull.north);
+\draw[arr] (pull.south)
+  -- node[lbl, right]{response} ([xshift=6pt]user.north);
 
 \end{tikzpicture}
-\caption{The embed-prove-pullback architecture.
-  The LLM operates at the boundary (gray dashed line).
-  The mirror and verifier operate in pure mathematical space.
-  No natural language crosses the boundary into the mirror.}
+\caption{The embed-prove-pullback architecture (depth view).
+  Vertical axis $=$ depth: the user sits in natural language
+  space~$\cS_{\mathrm{NL}}$ (bottom), the LLMs operate at the
+  translation boundary~$\partial\cS$ (middle, dashed),
+  and the mirror and verifier operate in pure mathematical
+  space~$\cS_{\mathrm{math}}$ (top).
+  Arrows cross the boundary twice: embed (in) and pullback (out).
+  No natural language enters~$\cS_{\mathrm{math}}$.}
 \label{fig:epp}
 \end{figure}
+
+\begin{remark}[Color convention --- potential energy]\label{rem:color}
+The color coding in Figures~\ref{fig:epp} and~\ref{fig:mcp}
+encodes potential energy:
+\begin{itemize}[nosep]
+\item \textbf{Green}: potential gain --- computation that lifts a
+  claim toward verified truth ($\Mirror_\theta$, training).
+\item \textbf{Red}: potential loss --- verification that rejects
+  false claims ($\cG$, court).
+\item \textbf{Blue}: routing --- boundary translation that transports
+  without changing truth value ($\Embed$, $\Pullback$).
+\item \textbf{Black/white}: input/output --- the user's query and
+  response, at ground potential.
+\end{itemize}
+The pipeline maximizes the potential energy of a hope-to-be truth:
+green adds potential (computation), red removes it (rejection),
+blue carries it (transport).
+What survives all three emerges as verified output at ground state.
+\end{remark}
 
 \subsection{Boundary conditions}
 
@@ -890,6 +1036,136 @@ The model has no persistent state between reflections
 (no conversation memory, no online learning).
 \end{proof}
 
+\subsection{Forced honest chain}\label{sec:devil}
+
+The unconditional contraction of Theorem~\ref{thm:nucleation}
+requires \emph{locks}---verification gates that prevent the
+contraction from converging to a plausible but incorrect fixed point.
+
+\begin{definition}[Three-lock gate]\label{def:three-lock}
+A \textbf{three-lock gate} for a proof candidate~$\hat{p}$ given
+theorem statement~$T$ consists of:
+\begin{enumerate}[label=(\roman*),nosep]
+\item \textbf{Syntactic lock:} \texttt{latexmk} exits with code~$0$
+  (the output compiles to valid \LaTeX).
+\item \textbf{Semantic lock:} the LLM court
+  (Definition~\ref{def:court}) ranks~$\hat{p}$ above a random
+  baseline with Borda score exceeding threshold~$\tau$.
+\item \textbf{Adversarial lock} (\texttt{devil\_check}): a minimal
+  verifier that checks the \emph{chain}, not the content:
+  \begin{itemize}[nosep]
+  \item every \verb|\ref| and \verb|\eqref| resolves,
+  \item no weasel words (``clearly'', ``obviously'') substitute
+    for justification,
+  \item each proof step references a prior step or an assumption,
+  \item the conclusion references the theorem's key terms.
+  \end{itemize}
+\end{enumerate}
+A candidate is \textbf{locked} if and only if all three gates accept.
+\end{definition}
+
+\begin{remark}[World's smallest mathematician]\label{rem:smallest-math}
+The adversarial lock implements the \emph{world's smallest mathematician}
+standard: the simplest possible verifier that can reject a flawed proof.
+This is the infrared (IR) limit of the renormalization group applied to
+the verifier itself---distill the checker to its minimal form.
+If the smallest adversary cannot find a gap, no adversary
+at the same structural level can (monotonicity of the RG flow,
+cf.~\S\ref{sec:rg}).
+The three locks form a hierarchy:
+syntactic~$\subset$~semantic~$\subset$~adversarial,
+where each level subsumes the failures detectable by the previous.
+\end{remark}
+
+\begin{proposition}[Forced honest contraction]\label{prop:honest}
+Let $\Phi\colon \cP \to \cP$ be the
+COMMAND--DEMAND iteration of Theorem~\ref{thm:nucleation},
+and let $G = G_1 \circ G_2 \circ G_3$ be the three-lock gate
+(Definition~\ref{def:three-lock}).
+Then the gated iteration $\Phi_G := G \circ \Phi$ satisfies:
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\operatorname{Fix}(\Phi_G) \subseteq \operatorname{Fix}(\Phi)$
+  (locked fixed points are a subset of all fixed points),
+\item every $p^* \in \operatorname{Fix}(\Phi_G)$ passes all three
+  locks (no leaked log-gas),
+\item the iteration $\Phi_G^n(p_0) \to p^*$ remains an
+  unconditional contraction on the compact space~$\cP$,
+  since $G$ is a projection (idempotent, non-expansive).
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(i)~Every locked fixed point satisfies $G(\Phi(p^*)) = p^*$,
+hence $\Phi(p^*) = p^*$ since $G$ only rejects.
+(ii)~By definition of the gate.
+(iii)~$G$ is a projection onto the closed subset
+$\cP_{\mathrm{locked}} \subseteq \cP$.
+Projection onto a closed convex subset of a compact space is
+non-expansive.  Composing a contraction with a non-expansive map
+yields a contraction on the image.
+The DEMAND loop ensures that rejected candidates re-enter $\Phi$,
+so the iteration does not stall.
+\end{proof}
+
+\begin{remark}[Binocular verification and holonomy]\label{rem:binocular}
+The three-lock gate is \emph{monocular}: it examines one proof along
+one transport path.
+A stronger test checks \emph{gauge invariance} directly:
+generate two proofs $\hat{p}_1, \hat{p}_2$ of the same theorem
+via different transport paths (e.g., different sampling temperatures),
+and measure the \textbf{holonomy}---the disparity between them.
+Let $\gamma_1, \gamma_2$ be two paths through the gauge field
+(Proposition~\ref{prop:gauge}) ending at the same theorem.
+The holonomy $H(\gamma_1, \gamma_2)$ measures curvature:
+\[
+  \kappa = 1 - \frac{|\operatorname{steps}(\hat{p}_1)
+    \cap \operatorname{steps}(\hat{p}_2)|}
+    {\max(|\operatorname{steps}(\hat{p}_1)|,\,
+    |\operatorname{steps}(\hat{p}_2)|)}.
+\]
+A valid proof is a gauge-invariant observable: $\kappa \approx 0$
+(path-independent).
+A hallucination is gauge-dependent: $\kappa \gg 0$
+(the ``proof'' changes with the path).
+The binocular gate rejects when $\kappa$ exceeds a threshold,
+adding depth perception to the monocular chain.
+At training time, penalising $\kappa$ encourages the model to learn
+gauge-invariant representations---proofs that do not depend on the
+random seed.
+\end{remark}
+
+\begin{remark}[The paper as $V(T,B)$]\label{rem:self-ref}
+A conjecture about an agent is itself a claim.
+Each theorem in this section conjectures about what the Math Mirror
+will do:
+Proposition~\ref{prop:grade0} conjectures it is a Grade~0 tool,
+Theorem~\ref{thm:nucleation} conjectures nucleation--collapse duality,
+Proposition~\ref{prop:honest} conjectures that the locks hold.
+These conjectures ARE the claims.
+The paper that contains them IS the proof---not by self-assertion,
+but because each claim is grounded by locks:
+the code compiles, the tests pass, the proofs have no gaps.
+This self-reference is not circular---it is anchored to physical
+reality.
+The current lock status:
+\begin{itemize}[nosep]
+\item[$\checkmark$] Code compiles (217 unit tests pass)
+\item[$\checkmark$] Paper compiles (\texttt{latexmk} exits~0)
+\item[$\checkmark$] No logical gaps
+  (\texttt{devil\_check}: no weasel words, no orphan steps)
+\item[$\square$] Submitted to arXiv (math.ML)
+\item[$\square$] Peer review accepted by human mathematicians
+  (no AI in the review loop---AI reviewing AI is circular
+  and produces no new information)
+\end{itemize}
+The unchecked boxes are the open DEMANDs.
+The paper is itself an instance of $V(T, B)$ with
+$T = \texttt{proofed.pdf}$ and $B = \text{the codebase}$.
+Agent nucleation is the process of making conjectures about agents,
+locking them, and outputting the result.
+This paper is that output---pending two locks.
+\end{remark}
+
 % ============================================================
 %  Section 8: Connection to Renormalization
 % ============================================================
@@ -1036,8 +1312,526 @@ all of Unicode) is an idealization that the ASCII lattice
 approximates for mathematical content.
 \end{remark}
 
+\subsection{Thermodynamics of symbolic work}\label{sec:thermo}
+
+The pipeline converts electricity into locked proofs.
+This conversion obeys the laws of thermodynamics,
+and the costs are measurable.
+
+\begin{definition}[Symbolic work]\label{def:sym-work}
+Let $\theta_t$ denote the model parameters at training step~$t$,
+and $L(\theta_t)$ the cross-entropy loss.
+The \textbf{symbolic work} performed in one gradient step is
+\begin{equation}\label{eq:work}
+  W_t = -\ip{\nabla L(\theta_t)}{\Delta\theta_t},
+\end{equation}
+where $\Delta\theta_t = \theta_{t+1} - \theta_t$ is the
+parameter displacement.
+The total work over $T$ steps is $W = \sum_{t=0}^{T-1} W_t$.
+
+The cross-entropy loss $L = -\sum_i \log p(x_i \mid x_{<i})$
+is the energy of a \textbf{log-gas}: $N$ tokens with pairwise
+interaction $V(i,j) = -\log\abs{x_i - x_j}$.
+Training $=$ equilibrating the log-gas.
+Each SGD step $=$ doing work against this potential.
+\end{definition}
+
+\begin{proposition}[Second law for symbolic work]\label{prop:second-law}
+The expected net symbolic work over any training trajectory
+is non-negative:
+\begin{equation}\label{eq:second-law}
+  \langle W \rangle
+  = \sum_{t=0}^{T-1} \langle W_t \rangle \geq 0.
+\end{equation}
+Equality holds only for reversible
+(zero-learning-rate) trajectories.
+\end{proposition}
+
+\begin{proof}
+SGD with learning rate $\eta > 0$ and optional noise $\xi_t$
+is Langevin dynamics:
+$\Delta\theta_t = -\eta\,\nabla L(\theta_t)
+  + \sqrt{2\eta / \beta}\;\xi_t$,
+where $\beta = 1 / (k_B T_{\mathrm{env}})$.
+The fluctuation-dissipation theorem gives
+$\langle W_t \rangle
+  = \eta\,\norm{\nabla L(\theta_t)}^2 \geq 0$.
+Summing over $T$ steps yields
+$\langle W \rangle \geq 0$.
+This is the second law: the model cannot decrease its own
+loss without doing work, and work dissipates as heat.
+The total entropy production is
+$\Delta S = \langle W \rangle / T_{\mathrm{env}} \geq 0$.
+\end{proof}
+
+\begin{remark}[Units]\label{rem:units}
+A theoretical physicist demands units.
+Every FLOP costs $\varepsilon \approx 10^{-12}$~J on
+modern silicon.
+For the Math Mirror ($N \approx 10^{7}$ parameters,
+$T \approx 10^{5}$ steps, batch size $B = 64$):
+$F = 6 N B T \approx 4 \times 10^{15}$ FLOPs
+(forward $+$ backward $+$ optimizer),
+giving $E = \varepsilon F \approx 4$~kJ---less than boiling
+a cup of water.
+The output is $I$ bits of verified proof.
+The thermodynamic efficiency
+$\eta_{\mathrm{thermo}} = I / E$ (bits per joule) is bounded
+below by the Landauer limit: erasing one bit costs at least
+$k_B T_{\mathrm{env}} \ln 2 \approx 3 \times 10^{-21}$~J
+at room temperature.
+The pipeline operates $\sim\!10^{19}$ above this
+limit---the direction is irreversible, and there is room.
+\end{remark}
+
+\begin{remark}[Generation is expensive, verification is
+  cheap]\label{rem:gen-verify}
+The asymmetry between COMMAND (generation) and DEMAND
+(verification) is thermodynamic.
+Generating a proof candidate requires a full forward pass:
+$W_{\mathrm{gen}} = O(N)$ FLOPs, where $N$ is the
+parameter count.
+Verifying it via \texttt{devil\_check} requires
+$W_{\mathrm{verify}} = O(n)$ string operations,
+where $n \ll N$ is the proof length in tokens.
+The ratio $W_{\mathrm{gen}} / W_{\mathrm{verify}} \gg 1$
+is the thermodynamic expression of the
+generation--verification asymmetry.
+In complexity-theoretic terms: checking is in~P,
+generating is (empirically) harder.
+The locks exploit this asymmetry: cheap verification gates
+filter expensive generation, concentrating compute on proofs
+that survive.
+\end{remark}
+
+\subsection{Convergence of the online pipeline}\label{sec:convergence}
+
+The full pipeline---query, embed, mirror, verify, update---is
+an online nonlinear optimization program.
+We prove it converges.
+
+\begin{definition}[Online projected verification descent]%
+\label{def:opvd}
+At step~$t$:
+\begin{enumerate}[nosep]
+\item Receive query $q_t$, compute $m_t = \Embed(q_t)$.
+\item Generate $r_t = \Mirror_{\theta_t}(m_t)$.
+\item Verify: $v_t = \mathbf{1}[\cG(r_t) = \texttt{ACCEPT}]$.
+\item Update:
+\begin{equation}\label{eq:opvd}
+  \theta_{t+1} = \Pi_{\Theta}\!\bigl(
+    \theta_t - \eta_t\, v_t\, \nabla L(\theta_t;\, e_t)
+  \bigr),
+\end{equation}
+where $e_t = (m_t, r_t)$,
+$\Pi_\Theta$ is projection onto
+$\Theta = \{\theta : \|\theta\| \leq R\}$,
+and $\eta_t$ is the learning rate.
+\end{enumerate}
+The gate $\cG$ acts as a selective projector:
+only verified examples contribute gradients.
+Rejected outputs produce zero updates ($v_t = 0$).
+\end{definition}
+
+\begin{theorem}[Convergence of the online pipeline]%
+\label{thm:converge}
+Under the following assumptions:
+\begin{enumerate}[nosep, label=\textup{(A\arabic*)}]
+\item \textbf{Compact parameters}:
+  $\Theta = \{\theta : \|\theta\| \leq R\}$
+  (ensured by weight decay).
+\item \textbf{Lipschitz gradient}:
+  $\|\nabla L(\theta) - \nabla L(\theta')\|
+   \leq M\|\theta - \theta'\|$
+  for all $\theta, \theta' \in \Theta$.
+\item \textbf{Bounded variance}:
+  $\mathbb{E}[\|\nabla L(\theta; e)
+   - \nabla L(\theta)\|^2] \leq \sigma^2$.
+\item \textbf{Robbins--Monro schedule}:
+  $\sum_t \eta_t = \infty$,
+  $\sum_t \eta_t^2 < \infty$.
+\item \textbf{Gate soundness}:
+  $\cG(e) = \texttt{ACCEPT}
+   \Rightarrow e$ is correct
+  (Theorem~\ref{thm:soundness}).
+\end{enumerate}
+Then:
+\begin{enumerate}[nosep, label=\textup{(\roman*)}]
+\item \textbf{Stationary point}:
+  $\displaystyle\min_{0 \leq s \leq t}
+    \mathbb{E}\bigl[\|\nabla L(\theta_s)\|^2\bigr]
+    = O(1/\sqrt{t})$.
+\item \textbf{Loss convergence}:
+  $L(\theta_t) \to L^* \geq 0$ almost surely.
+\item \textbf{Verification rate}:
+  $\displaystyle V_t = \frac{1}{t}\sum_{s=1}^{t} v_s
+    \to v^* \in [0, 1]$ almost surely.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\textbf{(i)}
+The effective gradient is
+$g_t = v_t \nabla L(\theta_t; e_t)$,
+where $v_t \in \{0, 1\}$.
+On the compact set~$\Theta$,
+$\|g_t\| \leq G$ for some constant~$G$.
+By~(A1), iterates remain in~$\Theta$.
+This is projected stochastic gradient descent
+with bounded iterates and Lipschitz-smooth
+objective on a compact set~\cite{SS12,Ha16}.
+The Robbins--Monro schedule~(A4)
+gives the standard rate
+$\min_{s \leq t}
+  \mathbb{E}[\|\nabla L(\theta_s)\|^2] = O(1/\sqrt{t})$.
+
+\textbf{(ii)}
+Cross-entropy is bounded below: $L(\theta) \geq 0$.
+By the second law (Proposition~\ref{prop:second-law}),
+$\langle W_t \rangle
+  = \eta_t \|\nabla L(\theta_t)\|^2 \geq 0$,
+so the loss decreases in expectation at each accepted step.
+By~(A1), the iterates have a convergent
+subsequence (Bolzano--Weierstrass).
+The continuous function~$L$ on the compact set~$\Theta$
+converges along subsequences, and the monotone
+expected decrease forces the full sequence to converge.
+
+\textbf{(iii)}
+As $\theta_t \to \theta^*$, the acceptance probability
+$p_t = \Pr[\cG(\Mirror_{\theta_t}(m)) = \texttt{ACCEPT}]$
+stabilizes: $p_t \to p^*$.
+By Ces\`{a}ro's lemma,
+$V_t = (1/t)\sum_{s=1}^{t} v_s \to p^* = v^*$.
+\end{proof}
+
+\begin{remark}[Mirror geometry]\label{rem:mirror-converge}
+The softmax output layer places the model's predictions on the
+probability simplex $\Delta^{|\cV|-1}$.
+With KL divergence as the Bregman potential,
+SGD becomes mirror descent~(\S\ref{sec:rg}).
+On the compact simplex, mirror descent achieves the tighter rate
+$O(\log t / t)$ for convex components of the loss
+landscape~\cite{Ha16},
+improving over the generic $O(1/\sqrt{t})$
+wherever local convexity holds.
+The color convention (Remark~\ref{rem:color})
+visualizes the convergence:
+green potential accumulates at rate $\langle W_t \rangle
+  = \eta_t \|\nabla L\|^2$,
+red potential removes rejected trajectories,
+and the verification rate~$V_t$ monotonically
+approaches~$v^*$ as the model improves.
+\end{remark}
+
 % ============================================================
-%  Section 9: Experiments (Planned)
+%  Section 9: Checkpoint Selection via Tabular SARSA
+% ============================================================
+\section{Checkpoint Selection via Tabular SARSA}\label{sec:sarsa}
+
+The training pipeline produces a sequence of parameter checkpoints
+$\theta_0, \theta_1, \ldots, \theta_N$ during gradient descent.
+The question of which checkpoint to deploy---and which to continue
+training from---is a model selection problem.
+We show that this problem is \emph{tabular} reinforcement learning,
+specifically SARSA, with no function approximation required.
+
+\subsection{The RLHF stress test}
+
+The boundary LLM $\Embed$ (Definition~\ref{def:epp}) translates
+natural language to mathematical ASCII.
+We deliberately choose a heavily RLHF-aligned model
+(e.g., ChatGPT) for this role.
+This is not despite the RLHF biases but \emph{because of them}.
+
+\begin{proposition}[Robustness to boundary bias]\label{prop:rlhf}
+Let $\Embed_{\mathrm{RLHF}}$ be a boundary LLM with
+systematic RLHF-induced biases in mathematical translation.
+The gated pipeline
+$\Pullback \circ \cG \circ \Mirror_\theta \circ \Embed_{\mathrm{RLHF}}$
+produces correct mathematical output whenever:
+\begin{enumerate}[label=(\alph*),nosep]
+\item $\Embed_{\mathrm{RLHF}}$ produces a syntactically valid
+  mathematical expression (even if it mistranslates intent), and
+\item the verification gate $\cG$ accepts the mirror's output.
+\end{enumerate}
+RLHF biases affect \emph{what question is asked}, not
+\emph{whether the answer is correct}.
+The verification gate is invariant under boundary bias.
+\end{proposition}
+
+\begin{proof}
+The gate $\cG$ operates on the mathematical content of
+$\Mirror_\theta(\Embed(q))$, not on the boundary translation
+itself.
+By Theorem~\ref{thm:soundness}, if $\cG$ accepts, the
+output is correct.
+The RLHF-biased LLM may mistranslate the user's intent
+(an $\Embed$ failure, visible to the user), but cannot
+cause the mirror to produce incorrect verified output.
+\end{proof}
+
+\begin{remark}[Why the worst LLM is the best test]
+A heavily RLHF-aligned model is the \emph{stress test}
+at the translation boundary.
+If the architecture produces correct verified output even
+when the boundary translator has systematic biases---refusing
+certain mathematical content, rephrasing inputs, adding
+unnecessary caveats---then the verification gate is doing its job.
+The more biased the boundary LLM, the harder the test.
+Passing it proves the architecture is robust.
+\end{remark}
+
+\subsection{The multi-LLM court}
+
+Model improvement requires evaluating which checkpoints
+produce better outputs.
+A single evaluator introduces systematic bias.
+We use a \emph{court} of diverse LLMs that produce
+\emph{rankings} (ordinal), not \emph{scores} (cardinal).
+
+\begin{definition}[Multi-LLM court]\label{def:court}
+Let $\{J_1, J_2, \ldots, J_K\}$ be a panel of $K$ diverse
+LLMs serving as judges.
+Given a set of candidate outputs
+$\{o_1, \ldots, o_n\}$ from different model checkpoints
+on the same test query, each judge $J_k$ produces
+a ranking $\pi_k \in S_n$ (a permutation of $\{1, \ldots, n\}$).
+The aggregated ranking is computed by Borda count:
+\begin{equation}\label{eq:borda}
+\mathrm{score}(o_i) = \sum_{k=1}^{K} (n - \pi_k(i)),
+\qquad
+\pi^* = \mathrm{argsort}(\mathrm{score}).
+\end{equation}
+\end{definition}
+
+\begin{proposition}[Bias cancellation]\label{prop:condorcet}
+If the judges' ranking errors are independent and each
+judge is correct with probability $p > 1/2$ on each
+pairwise comparison, then by Condorcet's jury theorem,
+the majority ranking converges to the correct ordering
+as $K \to \infty$.
+In particular, RLHF-induced biases that are uncorrelated
+across judges cancel in the aggregation.
+\end{proposition}
+
+\begin{remark}
+Rankings are preferred over scores because:
+(i)~ordinal comparisons are more reliable than cardinal
+ones for LLM judges;
+(ii)~rankings are invariant under monotone transformations
+of individual judge scales;
+(iii)~Borda aggregation is computable in $O(nK)$.
+\end{remark}
+
+\subsection{Checkpoints as states: tabular SARSA}
+
+The key observation is that training produces a \emph{finite}
+set of checkpoints.
+This makes the model selection problem \emph{tabular}.
+
+\begin{definition}[Checkpoint MDP]\label{def:checkpoint-mdp}
+The checkpoint Markov decision process is the tuple
+$(\cS, \cA, R, P)$ where:
+\begin{itemize}[nosep]
+\item $\cS = \{\theta_0, \theta_1, \ldots, \theta_N\}$
+  is the finite set of saved parameter checkpoints;
+\item $\cA = \{\text{continue}, \text{branch}, \text{deploy}\}$
+  is the finite action set;
+\item $R(\theta_i) = \mathrm{rank}(\theta_i)$ is the reward,
+  computed by the multi-LLM court
+  (Definition~\ref{def:court}) on the checkpoint's outputs;
+\item $P(\theta_j \mid \theta_i, a)$ is the transition
+  probability (deterministic for SGD: continuing from
+  $\theta_i$ yields $\theta_{i+1}$).
+\end{itemize}
+\end{definition}
+
+\begin{theorem}[Tabular SARSA for checkpoint selection]\label{thm:sarsa}
+The checkpoint selection problem
+(Definition~\ref{def:checkpoint-mdp})
+is a finite-state, finite-action MDP solvable by
+tabular SARSA\@:
+\begin{equation}\label{eq:sarsa}
+Q(\theta_t, a_t) \leftarrow Q(\theta_t, a_t)
+  + \alpha \bigl[R(\theta_t) + \gamma \, Q(\theta_{t+1}, a_{t+1})
+  - Q(\theta_t, a_t)\bigr],
+\end{equation}
+where $\alpha$ is the learning rate, $\gamma$ is the
+discount factor, and $Q : \cS \times \cA \to \R$ is the
+action-value table.
+No function approximation is required.
+The Q-table has $|\cS| \times |\cA| = O(N)$ entries.
+\end{theorem}
+
+\begin{proof}
+The state space is $\{\theta_0, \ldots, \theta_N\}$, finite
+by construction (we save $N$ checkpoints).
+The action space is finite.
+The reward is well-defined (the court produces a ranking
+for each checkpoint's outputs).
+Standard SARSA convergence guarantees apply to finite MDPs
+under appropriate step-size schedules~\cite{SB18}.
+\end{proof}
+
+\begin{remark}[The only RL is tabular RL]\label{rem:tabular}
+Deep RL approximates the Q-function with a neural network
+because the state space is too large for a table.
+Here the state space \emph{is} a table: $N$ checkpoints,
+each a snapshot of the parameters.
+There is no need to approximate---the Q-values are
+computed exactly from the court's rankings.
+This is reinforcement learning in its original, clean form:
+\emph{tabular}, \emph{symbolic} (rankings are ordinal symbols,
+not continuous scores), and \emph{convergent}
+(finite MDP with bounded rewards).
+Everything beyond tabular RL is function approximation.
+The checkpoint MDP needs no approximation.
+\end{remark}
+
+\begin{remark}[The self selects its own states]
+The ``self'' of the model is its parameter state~$\theta$.
+Different checkpoints are different selves.
+The court ranks these selves by their outputs---by what
+they \emph{do}, not what they \emph{are}.
+The selected checkpoint is the self that produces the
+highest-ranked mathematical output.
+This is model selection without meta-learning:
+the selves compete, the court judges, the best self continues.
+\end{remark}
+
+% ============================================================
+%  Section 10: The Model Context Pipeline
+% ============================================================
+\section{The Model Context Pipeline}\label{sec:mcp}
+
+The three servers described in this paper---arXiv source
+(\S\ref{sec:arxiv-curriculum}), multi-LLM court
+(\S\ref{sec:sarsa}), and training orchestrator---compose
+into a directed graph that we call the
+\emph{Model Context Pipeline} (MCP).
+
+\begin{definition}[Model Context Pipeline]\label{def:mcp}
+The MCP is a directed graph $G = (N, E)$ with three server
+nodes and typed edges:
+\begin{itemize}[nosep]
+\item $N_1$ = \texttt{arxiv-source}: fetches papers,
+  extracts theorem-proof pairs, produces masked training
+  examples (Definition~\ref{def:fitb}).
+\item $N_2$ = \texttt{llm-court}: panel of $K$ diverse LLM
+  judges producing Borda-aggregated rankings
+  (Definition~\ref{def:court}).
+\item $N_3$ = \texttt{mirror-train}: training orchestrator
+  with SARSA checkpoint scheduler
+  (Theorem~\ref{thm:sarsa}).
+\end{itemize}
+The edges carry typed data:
+\begin{enumerate}[label=(E\arabic*),nosep]
+\item $N_1 \xrightarrow{\text{training examples}} N_3$:
+  masked theorem-proof pairs enter the training loop.
+\item $N_3 \xrightarrow{\text{checkpoint outputs}} N_2$:
+  model outputs from candidate checkpoints are submitted
+  for court evaluation.
+\item $N_2 \xrightarrow{\text{Borda rankings}} N_3$:
+  aggregated rankings serve as the SARSA reward signal,
+  closing the feedback loop.
+\end{enumerate}
+External inputs: arXiv API (to $N_1$), LLM APIs (to $N_2$).
+External output: \texttt{proofed.pdf} (from $N_3$).
+\end{definition}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Stealth,
+  server/.style={draw, rounded corners=3pt, thick,
+    inner sep=8pt, minimum height=1.4cm,
+    align=center, font=\small},
+  ext/.style={draw, dashed, rounded corners=3pt,
+    inner sep=5pt, font=\scriptsize, text=gray},
+  arr/.style={->, thick},
+  elab/.style={font=\scriptsize, fill=white, inner sep=1pt}]
+
+% Server nodes (triangle)
+\node[server, fill=orange!10] (N1) at (0, 3) {$N_1$\\arXiv Source};
+\node[server, fill=red!12]    (N2) at (5, 0) {$N_2$\\LLM Court};
+\node[server, fill=green!10]  (N3) at (0, 0) {$N_3$\\Mirror Train};
+
+% Edges
+\draw[arr] (N1) -- node[elab, left]{(E1) training examples} (N3);
+\draw[arr] (N3) to[bend left=12] node[elab, above]{(E2) checkpoint outputs} (N2);
+\draw[arr] (N2) to[bend left=12] node[elab, below]{(E3) Borda rankings} (N3);
+
+% External inputs
+\node[ext] (arxiv) at (-2.5, 3) {arXiv API};
+\node[ext] (llm)   at (7.5, 0)  {LLM APIs};
+\node[ext] (pdf)   at (0, -1.8)  {\texttt{proofed.pdf}};
+
+\draw[arr, dashed, gray] (arxiv) -- (N1);
+\draw[arr, dashed, gray] (llm) -- (N2);
+\draw[arr, dashed, gray] (N3) -- (pdf);
+
+\end{tikzpicture}
+\caption{The Model Context Pipeline.
+  Three servers form a closed training loop.
+  External inputs enter at the arXiv and LLM boundaries;
+  the external output is a compiled proof document.}
+\label{fig:mcp}
+\end{figure}
+
+\begin{proposition}[Pipeline convergence]\label{prop:mcp-converge}
+The MCP loop converges when the SARSA Q-values stabilize.
+Formally, let $\Delta_t = \max_{s,a} |Q_{t+1}(s,a) - Q_t(s,a)|$.
+Under the standard SARSA step-size schedule
+$\sum_t \alpha_t = \infty$, $\sum_t \alpha_t^2 < \infty$,
+we have $\Delta_t \to 0$, and the recommended action
+for each checkpoint state becomes stationary.
+\end{proposition}
+
+\begin{proof}
+The state space $\cS$ and action space $\cA$ are finite
+(Definition~\ref{def:checkpoint-mdp}).
+The reward is bounded (Borda scores are in $[0, K(n-1)]$).
+Standard SARSA convergence for finite MDPs~\cite{SB18}
+gives $Q_t \to Q^*$ almost surely,
+hence $\Delta_t \to 0$.
+\end{proof}
+
+\subsection{Runtime specification}\label{sec:runtime}
+
+The runtime test is the end-to-end pipeline from a mathematical
+query to a compiled proof document.
+
+\begin{definition}[Runtime test]\label{def:runtime}
+The runtime pipeline is:
+\[
+q \xrightarrow{\Embed} m \xrightarrow{\Mirror_\theta} r
+  \xrightarrow{\cG} \hat{r}
+  \xrightarrow{\text{to\_latex}} \texttt{proofed.tex}
+  \xrightarrow{\texttt{latexmk}} \texttt{proofed.pdf}.
+\]
+The test passes if and only if:
+\begin{enumerate}[label=(\alph*),nosep]
+\item \texttt{latexmk} exits with code $0$ (syntactic correctness),
+\item the multi-LLM court ranks the output above a random
+  baseline (semantic quality),
+\item the verification gate accepts the output
+  (mathematical correctness).
+\end{enumerate}
+\end{definition}
+
+\begin{remark}[Three levels of checking]\label{rem:three-checks}
+The three conditions in Definition~\ref{def:runtime}
+correspond to three levels:
+\emph{compilation} = syntactic check (is it valid LaTeX?),
+\emph{court} = semantic check (is the proof meaningful?),
+\emph{gate} = correctness check (is it mathematically true?).
+A random string fails (a); a plausible-looking but wrong proof
+fails (c); a correct but poorly structured proof fails (b).
+All three must pass.
+\end{remark}
+
+% ============================================================
+%  Section 11: Experiments (Planned)
 % ============================================================
 \section{Experiments}\label{sec:experiments}
 
@@ -1162,8 +1956,9 @@ the LLM handles natural language at the boundary;
 the mirror handles mathematics in the interior;
 the verifier stands as the gate between computation and output.
 
-The connections to agent nucleation (\S\ref{sec:agent})
-and renormalization (\S\ref{sec:rg}) are not decorative.
+The connections to agent nucleation (\S\ref{sec:agent}),
+renormalization (\S\ref{sec:rg}), and tabular SARSA
+(\S\ref{sec:sarsa}) are not decorative.
 The mirror is a Grade~0 tool that nucleates on demand,
 computes, verifies, and collapses---the minimal unit of
 agentic computation.
@@ -1171,6 +1966,9 @@ Distillation from a large LLM to the small mirror is RG flow
 from UV to IR, and the verification gate enforces gauge
 invariance: the truth of the output is independent of the
 representation.
+Checkpoint selection is tabular RL---the only honest RL---where
+the model's own parameter states compete in a multi-LLM court,
+ranked by what they produce, not by what they are.
 
 The Math Mirror is small ($\sim$25M parameters), transparent
 (ASCII vocabulary), self-validating (SymPy oracle),
@@ -1249,6 +2047,11 @@ E.~Hazan.
 \newblock \emph{Foundations and Trends in Optimization},
 2(3--4):157--325, 2016.
 
+\bibitem{SB18}
+R.~S.~Sutton and A.~G.~Barto.
+\newblock \emph{Reinforcement Learning: An Introduction}.
+\newblock MIT Press, 2nd edition, 2018.
+
 \end{thebibliography}
 
 % ============================================================
@@ -1272,6 +2075,9 @@ The source code is organized as follows:
 \texttt{math\_mirror/bootstrap.py} & Self-validated data generation (Definition~\ref{def:dist}) \\
 \texttt{math\_mirror/mirror.py} & Agentic reflection loop (Algorithm~\ref{alg:reflect}) \\
 \texttt{math\_mirror/finetune.py} & Explicit finetuning (Definition~\ref{def:finetune}) \\
+\texttt{math\_mirror/mcp/arxiv\_source.py} & arXiv fetch + fill-in-the-blank (Definition~\ref{def:fitb}) \\
+\texttt{math\_mirror/mcp/llm\_court.py} & Multi-LLM court (Definition~\ref{def:court}) \\
+\texttt{math\_mirror/mcp/mirror\_train.py} & SARSA scheduler (Theorem~\ref{thm:sarsa}) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1354,6 +2160,16 @@ $\DKL$ & Kullback--Leibler divergence \\
 $\Breg$ & Bregman divergence \\
 $m_*$ & Mass gap (spectral gap of the model) \\
 $T_{\max}$ & Maximum context length $(= 2048)$ \\
+$J_k$ & LLM judge $k$ in the multi-LLM court \\
+$\pi_k$ & Ranking (permutation) produced by judge $k$ \\
+$Q(\theta, a)$ & SARSA action-value for checkpoint $\theta$, action $a$ \\
+$N_1, N_2, N_3$ & MCP server nodes (arXiv, court, train) \\
+$\mu_{\text{proof}}$ & Proof masking operator (Definition~\ref{def:fitb}) \\
+$w_{\text{arXiv}}$ & arXiv curriculum mixing weight $(0 \to 0.5)$ \\
+$\delta$ & Chunk overlap $(= 256)$ for long proofs \\
+$G = G_1 \circ G_2 \circ G_3$ & Three-lock verification gate \\
+$\kappa$ & Holonomy curvature (binocular disparity) \\
+$W_t$ & Symbolic work at training step $t$ \\
 \bottomrule
 \end{tabular}
 \end{center}

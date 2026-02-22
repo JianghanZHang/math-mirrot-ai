@@ -73,6 +73,25 @@ class MirrorAgent:
             f"\\end{{align}}"
         )
 
+    def to_latex_document(self, math_input: str, math_output: str,
+                          verified: bool = False) -> str:
+        """Produce a complete, compilable LaTeX document."""
+        status = "Verified" if verified else "Unverified"
+        return (
+            "\\documentclass{article}\n"
+            "\\usepackage{amsmath,amsthm}\n"
+            "\\newtheorem{theorem}{Theorem}\n"
+            "\\begin{document}\n"
+            "\\begin{theorem}\n"
+            f"  {math_input}\n"
+            "\\end{theorem}\n"
+            "\\begin{proof}\n"
+            f"  {math_output}\n"
+            "\\end{proof}\n"
+            f"\\noindent\\textbf{{Status:}} {status}.\n"
+            "\\end{document}\n"
+        )
+
     def reflect(self, user_input: str) -> Reflection:
         """Full agentic loop: embed → compute → verify → format."""
         # Step 1: embed (LLM boundary)

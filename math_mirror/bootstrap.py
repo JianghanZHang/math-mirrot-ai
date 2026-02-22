@@ -21,6 +21,11 @@ class MathBootstrap:
 
     def __init__(self):
         self.V = MathVerifier()
+        self._external_generators: list = []
+
+    def add_generator(self, gen):
+        """Register an external generator (e.g., ArxivSource.generate_batch)."""
+        self._external_generators.append(gen)
 
     # -- Arithmetic --
 
@@ -125,4 +130,10 @@ class MathBootstrap:
                 batch.append(example)
             except Exception:
                 continue  # skip failures, try next
+        # Append external generator outputs
+        for ext_gen in self._external_generators:
+            try:
+                batch.extend(ext_gen())
+            except Exception:
+                continue
         return batch
