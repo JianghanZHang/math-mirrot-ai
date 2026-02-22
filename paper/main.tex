@@ -1734,6 +1734,45 @@ replication with variation, scored by fitness,
 converging to the ESS.
 \end{remark}
 
+\begin{remark}[The simplex is the regulariser]%
+\label{rem:simplex-stable}
+Training on the strategy simplex $\Delta^{K-1}$ is
+\emph{unconditionally stable}---no gradient clipping,
+weight decay, or learning-rate warmup is needed.
+Three properties force this:
+\begin{enumerate}[nosep, label=\textup{(\roman*)}]
+\item \textbf{Conservation.}
+  The replicator flow~\eqref{eq:replicator}
+  preserves the probability constraint:
+  $\sum_i \dot{x}_i
+    = \sum_i x_i(w_i - \bar{w})
+    = \bar{w} - \bar{w} = 0$,
+  so $\sum_i x_i \equiv 1$ without re-normalisation.
+\item \textbf{Compactness.}
+  $\Delta^{K-1}$ is compact (closed, bounded).
+  Every trajectory has an $\omega$-limit set;
+  no orbit diverges, and no coordinate exceeds~$1$.
+\item \textbf{Lyapunov function.}
+  The KL divergence $D_{\mathrm{KL}}(x^* \| x)$
+  from the equilibrium~$x^*$ is non-increasing
+  along trajectories (Theorem~\ref{thm:three-names}\,b).
+  This is a natural loss function that needs
+  no design---it is entailed by the geometry.
+\end{enumerate}
+Together, (i)--(iii) satisfy the hypotheses of
+LaSalle's invariance principle:
+every initial condition $x(0) \in \Delta^{K-1}$
+converges to the largest invariant subset of
+$\{x : \dot{V}(x) = 0\}$, which is the ESS.
+
+The simplex is not merely a convenient
+parameterisation; it \emph{is} the regulariser.
+No additional stabilisation mechanism is needed
+because the geometry of probability distributions
+already provides conservation, boundedness,
+and a monotone Lyapunov functional.
+\end{remark}
+
 \subsection{Expanding-lattice training and Fokker--Planck}\label{sec:expanding}
 
 \begin{definition}[Expanding-lattice training protocol]\label{def:expanding}
@@ -1826,7 +1865,7 @@ $|\Lambda| \to \infty$ with shrinking gaps.
 \label{rem:profinite-stabilize}
 Proposition~\ref{prop:lattice-complete} is the lattice
 analog of continuum-limit stabilization in gauge theory.
-In Yang--Mills, $m_* > 0$ implies the lattice theory
+In Yang--Mills~\cite{YM54}, $m_* > 0$ implies the lattice theory
 at spacing $a \leq 1/m_*$ equals the continuum limit:
 the profinite completion $\varprojlim_a$ stabilizes at
 finite~$a$.
@@ -3359,6 +3398,12 @@ I.~Loshchilov and F.~Hutter.
 \newblock In \emph{International Conference on Learning
 Representations (ICLR)}, 2019.
 
+\bibitem{YM54}
+C.~N. Yang and R.~L. Mills.
+\newblock Conservation of isotopic spin and isotopic gauge
+invariance.
+\newblock \emph{Physical Review}, 96(1):191--195, 1954.
+
 \bibitem{Zhang2026YM}
 J.~Zhang.
 \newblock Yang--Mills mass gap via mirror descent:
@@ -3776,15 +3821,17 @@ A \emph{spectral MOPL retina} is a device $\cR$ consisting of:
     \textcolor{specBlue}{蓝}\,%
     \textcolor{specViolet}{紫}%
   \end{CJK}):
-  \[
-    \textcolor{specRed}{\lambda_1 = 700\,\text{nm}},\;
-    \textcolor{specOrange}{\lambda_2 = 620\,\text{nm}},\;
-    \textcolor{specYellow}{\lambda_3 = 580\,\text{nm}},\;
-    \textcolor{specGreen}{\lambda_4 = 530\,\text{nm}},\;
-    \textcolor{specCyan}{\lambda_5 = 490\,\text{nm}},\;
-    \textcolor{specBlue}{\lambda_6 = 450\,\text{nm}},\;
-    \textcolor{specViolet}{\lambda_7 = 400\,\text{nm}}^{\dagger}.
-  \]
+  \begin{equation}\label{eq:spectral-channels}
+  \begin{aligned}
+    \textcolor{specRed}{\lambda_1} &= \textcolor{specRed}{700\,\text{nm}}, &
+    \textcolor{specOrange}{\lambda_2} &= \textcolor{specOrange}{620\,\text{nm}}, &
+    \textcolor{specYellow}{\lambda_3} &= \textcolor{specYellow}{580\,\text{nm}}, \\
+    \textcolor{specGreen}{\lambda_4} &= \textcolor{specGreen}{530\,\text{nm}}, &
+    \textcolor{specCyan}{\lambda_5} &= \textcolor{specCyan}{490\,\text{nm}}, &
+    \textcolor{specBlue}{\lambda_6} &= \textcolor{specBlue}{450\,\text{nm}}, \\[4pt]
+    \textcolor{specViolet}{\lambda_7} &= \textcolor{specViolet}{400\,\text{nm}}^{\dagger}.
+  \end{aligned}
+  \end{equation}
   Each pixel produces a 7-vector
   $s_{ij} \in \R^7_{\geq 0}$.
 
@@ -3877,20 +3924,20 @@ protocol (Section~\ref{sec:expanding}) with the following
 correspondence:
 \begin{center}
 \small
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}p{0.22\linewidth}p{0.33\linewidth}p{0.35\linewidth}@{}}
 \toprule
 \textbf{MOPL (Go)} & \textbf{MOPL (Retina)} & \textbf{Equation} \\
 \midrule
 Board size $N_k$ & Stimulus complexity level $k$ &
   Simple $\to$ complex \\
-Framework type & Encoder configuration $\theta_j$ &
+Framework type & Encoder config.\ $\theta_j$ &
   Different spectral weightings \\
-Opponent (HeuristicGoer) & Test stimulus
-  (calibrated visual target) & Known ground truth \\
+Opponent (Heuristic\-Goer) & Test stimulus
+  (calibrated target) & Known ground truth \\
 Game outcome & User percept report &
   ``I see a horizontal bar'' \\
 Not-lose gate & Perception gate &
-  User correctly identifies $\geq$ threshold \\
+  User identifies $\geq$ threshold \\
 Pool update & Encoder weight update &
   $\theta \gets \theta - \eta\,\nabla_\theta
   \cL(\text{percept}, \text{target})$ \\
@@ -3991,8 +4038,9 @@ The condition $m_* > 0$ is the \emph{necessary and
 sufficient} condition for the artificial retina
 to work.
 It is the same mass gap that appears in
-Yang--Mills theory (the existence of a spectral gap
-in the Hamiltonian), in the MOPL framework
+Yang--Mills theory~\cite{YM54} (the existence of a spectral gap
+in the Hamiltonian; see also~\cite{Zhang2026YM}),
+in the MOPL framework
 (the not-lose gate), and in the verification gate
 (the minimum confidence threshold).
 All are the same mathematical object:
@@ -4251,7 +4299,7 @@ mathematical answer:
   and what resolution is achievable.\\[4pt]
   If $m_* > 0$: the blind can see.\\
   If $m_* = 0$: no device can help.\\[4pt]
-  This is the same $m_*$ as in Yang--Mills,
+  This is the same $m_*$ as in Yang--Mills~\cite{YM54},
   in MOPL, and in the verification gate.\\
   One number. Three fields. One answer.
 }}
