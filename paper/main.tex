@@ -2607,6 +2607,10 @@ or the budget is exhausted.
 \end{definition}
 \end{minipage}}
 
+\medskip
+\noindent
+\fcolorbox{blue!60}{blue!6}{%
+\begin{minipage}{0.95\linewidth}
 \begin{remark}[Queen invents the game online]\label{rem:queen-invents}
 Queen is not learning to play Go.
 She is \textbf{inventing} Go---online, from scratch, with no
@@ -2636,6 +2640,47 @@ but a \textbf{pool-health invariant}:
 if any framework at any scale cannot even draw,
 the pool's coverage has collapsed---Queen has stopped inventing.
 \end{remark}
+
+\begin{remark}[MOPL has zero free parameters]\label{rem:zero-param}
+Every constant in MOPL is either uniquely forced by a mathematical
+principle or determined by the game domain.
+None is tuned.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Component & Value & Why forced \\
+\midrule
+Pool initialisation & uniform $x_i = 1/k$ &
+  unique maximum-entropy prior \\
+Pool update & running average &
+  unique Bayesian posterior under $\mathrm{Beta}(1,1)$ \\
+Pool sampling & Boltzmann softmax &
+  unique distribution satisfying max-entropy \\
+Komi & $\kappa(N) = \max(1, \lfloor 7(N/19)^2 \rceil)$ &
+  area-normalised to $19{\times}19$ standard \\
+Framework set & 5 canonical Go strategies &
+  domain-determined (territorial, influence, \ldots) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+There is no learning rate, no momentum, no weight decay,
+no hidden dimension, no architecture search,
+no validation set, no early stopping, no dropout,
+no batch size, no optimiser choice.
+The update rule
+$\bar{w}_{n+1} = (\bar{w}_n \cdot n + o_{n+1})/(n+1)$
+is not a design decision---it is the \emph{only}
+online estimator that is both unbiased and consistent
+for the mean of a bounded random variable.
+MOPL is therefore not a model to be tuned.
+It is a \textbf{measurement instrument}:
+given Go rules and a frozen opponent,
+the output is determined.
+\end{remark}
+\end{minipage}}
 
 \begin{definition}[Championship trial]\label{def:championship}
 After all gates pass, the championship consists of
