@@ -181,20 +181,20 @@ and that self-validation eliminates hallucination by construction.
   >{\columncolor{specBlue!5}}c
   >{\columncolor{specViolet!3}}c
   @{}}
-\textsc{Remark} &
-\textsc{Definition} &
-\textsc{Lemma} &
-\textsc{Proposition} &
-\textsc{Corollary} &
-\textsc{Theorem} &
-\textsc{Proof} \\[1pt]
-{\scriptsize\begin{CJK}{UTF8}{gbsn}赤\end{CJK}\;700\,nm} &
-{\scriptsize\begin{CJK}{UTF8}{gbsn}橙\end{CJK}\;620\,nm} &
-{\scriptsize\begin{CJK}{UTF8}{gbsn}黄\end{CJK}\;580\,nm} &
-{\scriptsize\begin{CJK}{UTF8}{gbsn}绿\end{CJK}\;530\,nm} &
-{\scriptsize\begin{CJK}{UTF8}{gbsn}青\end{CJK}\;490\,nm} &
-{\scriptsize\begin{CJK}{UTF8}{gbsn}蓝\end{CJK}\;450\,nm} &
-{\scriptsize\begin{CJK}{UTF8}{gbsn}紫\end{CJK}\;400\,nm} \\
+\textcolor{specRed}{\textsc{Remark}} &
+\textcolor{specOrange}{\textsc{Definition}} &
+\textcolor{specYellow}{\textsc{Lemma}} &
+\textcolor{specGreen}{\textsc{Proposition}} &
+\textcolor{specCyan}{\textsc{Corollary}} &
+\textcolor{specBlue}{\textsc{Theorem}} &
+\textcolor{specViolet}{\textsc{Proof}} \\[1pt]
+{\scriptsize\textcolor{specRed}{\begin{CJK}{UTF8}{gbsn}赤\end{CJK}\;$\lambda_1\!=\!700$\,nm}} &
+{\scriptsize\textcolor{specOrange}{\begin{CJK}{UTF8}{gbsn}橙\end{CJK}\;$\lambda_2\!=\!620$\,nm}} &
+{\scriptsize\textcolor{specYellow}{\begin{CJK}{UTF8}{gbsn}黄\end{CJK}\;$\lambda_3\!=\!580$\,nm}} &
+{\scriptsize\textcolor{specGreen}{\begin{CJK}{UTF8}{gbsn}绿\end{CJK}\;$\lambda_4\!=\!530$\,nm}} &
+{\scriptsize\textcolor{specCyan}{\begin{CJK}{UTF8}{gbsn}青\end{CJK}\;$\lambda_5\!=\!490$\,nm}} &
+{\scriptsize\textcolor{specBlue}{\begin{CJK}{UTF8}{gbsn}蓝\end{CJK}\;$\lambda_6\!=\!450$\,nm}} &
+{\scriptsize\textcolor{specViolet}{\begin{CJK}{UTF8}{gbsn}紫\end{CJK}\;$\lambda_7\!=\!400$\,nm$^{\dagger}$}} \\
 \end{tabular}
 \renewcommand{\arraystretch}{1.0}
 
@@ -203,7 +203,8 @@ and that self-validation eliminates hallucination by construction.
 Background colours follow Newton's visible spectrum
 (\begin{CJK}{UTF8}{gbsn}赤橙黄绿青蓝紫\end{CJK}).\\
 Energy increases left to right: \emph{qualitative}
-$\longrightarrow$ \emph{verified}.
+$\longrightarrow$ \emph{verified}.\\
+$^{\dagger}$\,$\lambda_7$ is out of the box---the proof is the gate, not a move.\\
 See Remark~\ref{rem:spectral-workflow}.}
 \end{center}
 \bigskip
@@ -3192,41 +3193,41 @@ environment types, one per band of Newton's visible spectrum
 \toprule
 $\lambda$ & Colour & Environment & Energy \\
 \midrule
-700\,nm & Red\;(\begin{CJK}{UTF8}{gbsn}赤\end{CJK})
+\textcolor{specRed}{700\,nm} & \textcolor{specRed}{Red\;(\begin{CJK}{UTF8}{gbsn}赤\end{CJK})}
         & Remark      & lowest---qualitative \\
-620\,nm & Orange\;(\begin{CJK}{UTF8}{gbsn}橙\end{CJK})
+\textcolor{specOrange}{620\,nm} & \textcolor{specOrange}{Orange\;(\begin{CJK}{UTF8}{gbsn}橙\end{CJK})}
         & Definition  & naming \\
-580\,nm & Yellow\;(\begin{CJK}{UTF8}{gbsn}黄\end{CJK})
+\textcolor{specYellow}{580\,nm} & \textcolor{specYellow}{Yellow\;(\begin{CJK}{UTF8}{gbsn}黄\end{CJK})}
         & Lemma       & technical stepping stone \\
-530\,nm & Green\;(\begin{CJK}{UTF8}{gbsn}绿\end{CJK})
+\textcolor{specGreen}{530\,nm} & \textcolor{specGreen}{Green\;(\begin{CJK}{UTF8}{gbsn}绿\end{CJK})}
         & Proposition & intermediate claim \\
-490\,nm & Cyan\;(\begin{CJK}{UTF8}{gbsn}青\end{CJK})
+\textcolor{specCyan}{490\,nm} & \textcolor{specCyan}{Cyan\;(\begin{CJK}{UTF8}{gbsn}青\end{CJK})}
         & Corollary   & consequence of theorem \\
-450\,nm & Blue\;(\begin{CJK}{UTF8}{gbsn}蓝\end{CJK})
+\textcolor{specBlue}{450\,nm} & \textcolor{specBlue}{Blue\;(\begin{CJK}{UTF8}{gbsn}蓝\end{CJK})}
         & Theorem     & main result \\
-400\,nm & Violet\;(\begin{CJK}{UTF8}{gbsn}紫\end{CJK})
-        & Proof       & verification gate \\
+\textcolor{specViolet}{400\,nm}$^{\dagger}$ & \textcolor{specViolet}{Violet\;(\begin{CJK}{UTF8}{gbsn}紫\end{CJK})}
+        & Proof       & verification gate$^{\dagger}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 %
+\noindent
+{\small $^{\dagger}$\,$\lambda_7 = 400$\,nm is \emph{out of the box}:
+seven environment types on six die faces
+($\dim\mathrm{SE}(3) = 6$) forces one type outside.
+The proof is not a move; it is the \emph{gate}
+that validates moves (Section~\ref{sec:gate}).}
+
+\medskip
 The ordering is not decorative---it is a \emph{deterministic
 workflow}.
 A reader scanning the page processes
 the full logical spectrum at a glance:
-violet (proof/verified) suppresses uncertainty in
-red (remark/qualitative),
+\textcolor{specViolet}{violet} (proof/verified) suppresses uncertainty in
+\textcolor{specRed}{red} (remark/qualitative),
 exactly as UV renormalization suppresses IR divergences
 in quantum field theory
 (Section~\ref{sec:rg}).
-
-The pigeonhole principle forces the decomposition:
-seven environment types on six die faces
-($\dim\mathrm{SE}(3) = 6$) leaves one type---the
-proof---outside the die.
-The proof is not a move; it is the \emph{gate}
-that validates moves
-(Section~\ref{sec:gate}).
 With all seven colours on screen, the neuron dynamics
 of reading operates at full bandwidth:
 no bottleneck, no stuck state, deterministic flow.
