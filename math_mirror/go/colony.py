@@ -127,7 +127,8 @@ class Colony:
         self.records = GameRecordStore()
         self.transcriber = Transcriber()
         self.agents: list[MOPL] = [
-            MOPL(goer_factory(), thinker, valuer, self.pool)
+            MOPL(goer_factory(), thinker, valuer, self.pool,
+                 records=self.records)
             for _ in range(n_agents)
         ]
         self.n_agents = n_agents

@@ -15,9 +15,27 @@ from typing import TYPE_CHECKING
 from .board import Board
 
 if TYPE_CHECKING:
+    from .colony import GameRecordStore
     from .pool import StrategicPool
 
 log = logging.getLogger(__name__)
+
+
+def _retrieve_winning_openings(records, framework, board_size, k=3):
+    """Retrieve opening moves from winning games with this framework."""
+    if records is None or len(records) == 0:
+        return []
+    winning = [r for r in records.filter_by_framework(framework)
+               if r.outcome > 0 and r.board_size == board_size]
+    if not winning:
+        return []
+    recent = winning[-k:]
+    openings = []
+    for r in recent:
+        from .transcriber import _decode_move
+        moves = [_decode_move(m) for m in r.moves[:4]]
+        openings.append(moves)
+    return openings
 
 
 class Thinker(abc.ABC):
@@ -28,7 +46,8 @@ class Thinker(abc.ABC):
         """Produce a strategic analysis of the current position."""
 
     @abc.abstractmethod
-    def pick_framework(self, board: Board, pool: StrategicPool) -> str:
+    def pick_framework(self, board: Board, pool: StrategicPool,
+                       records: GameRecordStore | None = None) -> str:
         """Choose a strategic framework from the pool."""
 
     @abc.abstractmethod
@@ -48,12 +67,17 @@ class RuleThinker(Thinker):
         phase = self._detect_phase(board)
         return f"Phase: {phase}. Context: {context}."
 
-    def pick_framework(self, board: Board, pool: StrategicPool) -> str:
-        """Pick framework based on game phase."""
+    def pick_framework(self, board: Board, pool: StrategicPool,
+                       records=None) -> str:
+        """Pick framework based on game phase, biased by 棋谱 if available."""
         phase = self._detect_phase(board)
         frameworks = list(pool.frameworks.keys())
         if not frameworks:
             return "territorial"
+
+        # Opening with records: blend pool win_rate with empirical win counts
+        if phase == "opening" and records is not None and len(records) > 0:
+            return self._pick_with_records(pool, records, board.SIZE)
 
         # Opening: sample from pool (exploration)
         if phase == "opening":
@@ -71,6 +95,41 @@ class RuleThinker(Thinker):
             if name in pool.frameworks:
                 return name
         return pool.sample(temperature=0.5)
+
+    def _pick_with_records(self, pool, records, board_size):
+        """Blend pool win_rate with record bonus for framework selection."""
+        import math
+        import random
+
+        names = list(pool.frameworks.keys())
+        win_rates = [pool.frameworks[n]["win_rate"] for n in names]
+
+        # Count wins per framework from records
+        win_counts: dict[str, int] = {}
+        for r in records.get_all():
+            if r.outcome > 0 and r.board_size == board_size:
+                win_counts[r.framework] = win_counts.get(r.framework, 0) + 1
+
+        # Record bonus: log(1 + win_count) scaled by 0.3
+        bonuses = [0.3 * math.log(1 + win_counts.get(n, 0)) for n in names]
+
+        # Boltzmann weights: exp((log(wr) + bonus) / T)
+        temperature = 1.0
+        clamped = [max(0.01, min(0.99, wr)) for wr in win_rates]
+        log_weights = [(math.log(wr) + b) / temperature
+                       for wr, b in zip(clamped, bonuses)]
+        max_lw = max(log_weights)
+        exp_weights = [math.exp(lw - max_lw) for lw in log_weights]
+        total = sum(exp_weights)
+        probs = [ew / total for ew in exp_weights]
+
+        r = random.random()
+        cumulative = 0.0
+        for i, p in enumerate(probs):
+            cumulative += p
+            if r <= cumulative:
+                return names[i]
+        return names[-1]
 
     def evaluate_plan(self, board: Board, plan: str,
                       candidates: list[dict]) -> int:
@@ -195,9 +254,10 @@ class LLMThinker(Thinker):
             log.warning("LLM analyze failed: %s", e)
             return self._fallback.analyze(board, context)
 
-    def pick_framework(self, board: Board, pool: StrategicPool) -> str:
+    def pick_framework(self, board: Board, pool: StrategicPool,
+                       records=None) -> str:
         # Framework selection is better done by rules than LLM
-        return self._fallback.pick_framework(board, pool)
+        return self._fallback.pick_framework(board, pool, records=records)
 
     def evaluate_plan(self, board: Board, plan: str,
                       candidates: list[dict]) -> int:

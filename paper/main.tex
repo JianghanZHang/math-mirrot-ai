@@ -3062,6 +3062,134 @@ classical formulation discards.
 \end{remark}
 \end{minipage}}
 
+\medskip
+\noindent
+\colorbox{blue!8}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\begin{remark}[Closed IO loop of the
+  \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}]%
+\label{rem:io-circuit}
+\color{blue!50!black}%
+The write path (Definition~\ref{def:game-record},
+Proposition~\ref{prop:lock}) deposits records into the
+store~$\Phi$ and updates pool weights.
+We now close the loop by specifying the \emph{read} path.
+The full symbolic circuit is:
+\[
+  \Pi
+  \xrightarrow{\;\text{sample}\;}
+  f_i
+  \xrightarrow{\;\text{Thinker}\;}
+  \text{prompt}
+  \xrightarrow{\;\text{Goer}\;}
+  \gamma
+  \xrightarrow{\;\text{Transcriber}\;}
+  \Phi
+  \xrightarrow{\;\text{retrieve}\;}
+  \text{Thinker},
+\]
+where $f_i$ is the sampled framework, $\gamma$ is the game
+record, and the retrieve arrow feeds past records back
+into the Thinker's context for the next game.
+In parallel, the scalar outcome
+$o \in \{-1,0,+1\}$ feeds back:
+$\gamma \xrightarrow{\;o\;} \Pi.\texttt{update}()$.
+
+\medskip\noindent
+\textbf{Two read-back channels.}\;
+The loop carries two signals of different bandwidth:
+\begin{enumerate}
+\item \emph{Scalar channel}:
+  outcome $o \in \{-1,0,+1\}$
+  $\to$ pool running-average update
+  (Proposition~\ref{prop:lock}).
+  Fast, lossy---the 1-bit gradient.
+  The pool converges to the optimal framework mixture
+  via this channel alone.
+\item \emph{Symbolic channel}:
+  full record $\gamma \in \Phi$
+  $\to$ Thinker retrieval.
+  Slow, rich---the complete move sequence.
+  The Thinker refines move selection by conditioning on
+  past trajectories filtered by framework and outcome.
+\end{enumerate}
+
+\medskip\noindent
+\textbf{Positional structure.}\;
+Each move $m_t = (\texttt{move\_number},\, r,\, c,\,
+\texttt{color})$ in the record~$\gamma$ carries an
+explicit position.
+The sequence $(m_1, \ldots, m_T)$ is a trajectory through
+board-state space $\{0,B,W\}^{n \times n}$.
+Retrieving past records from~$\Phi$ by framework and outcome
+is \emph{attention over trajectory space}---the same
+mechanism as positional embedding in a transformer,
+but over game histories rather than token positions.
+
+\medskip\noindent
+\textbf{The opponent is invisible.}\;
+The record~$\gamma$ contains both sides' moves
+(necessary for replay), but the pool receives only the
+MOPL-perspective outcome~$o$.
+The queen observes \emph{results}, not methods.
+This is the correct information boundary:
+learning \emph{what works} (exploitation signal)
+without copying \emph{how the opponent plays},
+which would destroy strategic diversity across the colony.
+\end{remark}
+\end{minipage}}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  >=Stealth,
+  box/.style={draw, rounded corners=3pt, minimum width=2.2cm,
+              minimum height=0.85cm, font=\small\bfseries,
+              align=center, line width=0.5pt},
+  arr/.style={->, thick},
+  lbl/.style={font=\scriptsize, fill=white, inner sep=1pt},
+]
+  % Pentagon layout (angles: top, upper-right, lower-right, lower-left, upper-left)
+  \node[box, fill=green!12]  (pool)  at (90:2.8)   {Pool\; $\Pi$};
+  \node[box, fill=blue!10]   (think) at (18:2.8)    {Thinker};
+  \node[box, fill=orange!12] (goer)  at (-54:2.8)   {Goer};
+  \node[box, fill=yellow!10] (game)  at (-126:2.8)  {Game\; $\gamma$};
+  \node[box, fill=red!10]    (store) at (162:2.8)   {Store\; $\Phi$};
+
+  % Forward loop (clockwise around pentagon)
+  \draw[arr] (pool)  -- node[lbl, above right=-1pt] {sample $f_i$} (think);
+  \draw[arr] (think) -- node[lbl, right]            {prompt}       (goer);
+  \draw[arr] (goer)  -- node[lbl, below]            {play}         (game);
+  \draw[arr] (game)  -- node[lbl, left]      {\textit{Transcriber}} (store);
+
+  % Symbolic channel: Store -> Thinker (thick red, crosses interior)
+  \draw[->, very thick, red!60!black] (store) --
+    node[lbl, above, pos=0.45, text=red!60!black] {\textit{retrieve}} (think);
+
+  % Scalar channel: Game -> Pool (thin green, crosses interior)
+  \draw[->, semithick, green!50!black] (game) --
+    node[lbl, above, pos=0.5, text=green!50!black] {$o \in \{-1,0,{+}1\}$} (pool);
+
+  % Opponent (outside pentagon, below)
+  \node[box, fill=gray!8, draw=gray, dashed]
+    (opp) at (-90:4.2) {\textcolor{gray}{Opponent}};
+  \draw[->, dashed, gray] (opp) --
+    node[lbl, right, text=gray] {opaque} (game);
+
+\end{tikzpicture}
+\caption{The closed symbolic circuit of the
+  \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}
+  (Remark~\ref{rem:io-circuit}).
+  Black arrows: forward data flow (clockwise).
+  \textcolor{red!60!black}{\textbf{Red}}: symbolic channel
+    (full game record, rich).
+  \textcolor{green!50!black}{\textbf{Green}}: scalar channel
+    (1-bit outcome, fast).
+  Dashed grey: the opponent is outside the pheromone
+  loop---the queen observes results, not methods.}%
+\label{fig:io-circuit}
+\end{figure}
+
 \subsection{King's Predictive Control: S-MPPI backward dual}%
 \label{sec:kings-control}
 

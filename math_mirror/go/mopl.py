@@ -51,11 +51,13 @@ class MOPL:
     """
 
     def __init__(self, goer: Goer, thinker: Thinker,
-                 valuer: Valuer, pool: StrategicPool) -> None:
+                 valuer: Valuer, pool: StrategicPool,
+                 records=None) -> None:
         self.goer = goer
         self.thinker = thinker
         self.valuer = valuer
         self.pool = pool
+        self.records = records
         self._current_framework: str = ""
 
     def opening_seed(self, board: Board, framework: str,
@@ -87,7 +89,8 @@ class MOPL:
         5. Return the move
         """
         # Step 1: pick framework
-        framework = self.thinker.pick_framework(board, self.pool)
+        framework = self.thinker.pick_framework(board, self.pool,
+                                                records=self.records)
         self._current_framework = framework
         fw_desc = self.pool.frameworks.get(framework, {}).get(
             "description", framework)
@@ -135,7 +138,8 @@ class MOPL:
             {history, outcome (from MOPL perspective), framework, ...}
         """
         board = Board(size=board_size)
-        framework = self.thinker.pick_framework(board, self.pool)
+        framework = self.thinker.pick_framework(board, self.pool,
+                                                records=self.records)
         self._current_framework = framework
 
         consecutive_passes = 0

@@ -328,3 +328,73 @@ class TestColony:
         for record in colony.records.get_all():
             assert isinstance(record, GameRecord)
             assert record.board_size == 5
+
+
+# ═══════════════════════════════════════════════════════════
+# TestRecordReadPath — 棋谱 read path
+# ═══════════════════════════════════════════════════════════
+
+class TestRecordReadPath:
+    """Test that 棋谱 are read back to inform strategy."""
+
+    def test_mopl_accepts_records(self):
+        """MOPL constructor accepts optional records."""
+        store = GameRecordStore()
+        mopl = MOPL(HeuristicGoer(), RuleThinker(), Valuer(),
+                     StrategicPool(), records=store)
+        assert mopl.records is store
+
+    def test_mopl_records_default_none(self):
+        """MOPL records defaults to None when not provided."""
+        mopl = MOPL(HeuristicGoer(), RuleThinker(), Valuer(), StrategicPool())
+        assert mopl.records is None
+
+    def test_colony_wires_records_to_agents(self):
+        """Colony passes its record store to all agents."""
+        colony = Colony(n_agents=2, goer_factory=HeuristicGoer,
+                       thinker=RuleThinker(), valuer=Valuer())
+        for agent in colony.agents:
+            assert agent.records is colony.records
+
+    def test_pick_framework_accepts_records(self):
+        """RuleThinker.pick_framework works with records parameter."""
+        t = RuleThinker()
+        pool = StrategicPool()
+        board = Board(size=5)
+        store = GameRecordStore()
+        fw1 = t.pick_framework(board, pool)
+        fw2 = t.pick_framework(board, pool, records=store)
+        assert fw1 in pool.frameworks
+        assert fw2 in pool.frameworks
+
+    def test_records_influence_framework_selection(self):
+        """Winning records should bias framework selection."""
+        t = RuleThinker()
+        pool = StrategicPool()
+        board = Board(size=9)
+        store = GameRecordStore()
+
+        for _ in range(20):
+            store.append(GameRecord(
+                board_size=9, komi=1, framework="aggressive",
+                mopl_color=1, outcome=1.0, moves=("B[4,4]",),
+                black_score=50, white_score=30, move_count=1,
+            ))
+
+        counts = {}
+        for _ in range(100):
+            fw = t.pick_framework(board, pool, records=store)
+            counts[fw] = counts.get(fw, 0) + 1
+
+        assert counts.get("aggressive", 0) > 15
+
+    def test_sequential_training_uses_records(self):
+        """After training, records should be populated and accessible."""
+        colony = Colony(n_agents=1, goer_factory=HeuristicGoer,
+                       thinker=RuleThinker(), valuer=Valuer())
+        opponent = RandomGoer()
+        result = colony.train_sequential(opponent, n_games_per_agent=5, board_size=5)
+
+        assert len(colony.records) == 5
+        assert colony.agents[0].records is colony.records
+        assert len(colony.agents[0].records) == 5
