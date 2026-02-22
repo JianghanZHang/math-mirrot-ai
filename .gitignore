@@ -1,1 +1,10 @@
 __pycache__/
+.DS_Store
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.pdf
+*.synctex.gz
