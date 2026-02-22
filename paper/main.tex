@@ -2609,8 +2609,9 @@ or the budget is exhausted.
 
 \medskip
 \noindent
-\fcolorbox{blue!60}{blue!6}{%
-\begin{minipage}{0.95\linewidth}
+\colorbox{cyan!12}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\color{blue!85!black}%
 \begin{remark}[Queen invents the game online]\label{rem:queen-invents}
 Queen is not learning to play Go.
 She is \textbf{inventing} Go---online, from scratch, with no
@@ -2647,20 +2648,21 @@ principle or determined by the game domain.
 None is tuned.
 
 \begin{center}
-\begin{tabular}{lll}
+\small
+\begin{tabular}{@{}l@{\;\;}l@{\;\;}l@{}}
 \toprule
 Component & Value & Why forced \\
 \midrule
-Pool initialisation & uniform $x_i = 1/k$ &
-  unique maximum-entropy prior \\
+Pool init & uniform $x_i = 1/k$ &
+  max-entropy prior (unique) \\
 Pool update & running average &
-  unique Bayesian posterior under $\mathrm{Beta}(1,1)$ \\
+  Bayesian posterior, $\mathrm{Beta}(1,1)$ \\
 Pool sampling & Boltzmann softmax &
-  unique distribution satisfying max-entropy \\
-Komi & $\kappa(N) = \max(1, \lfloor 7(N/19)^2 \rceil)$ &
-  area-normalised to $19{\times}19$ standard \\
-Framework set & 5 canonical Go strategies &
-  domain-determined (territorial, influence, \ldots) \\
+  max-entropy distribution (unique) \\
+Komi & $\max(1, \lfloor 7(N/19)^2 \rceil)$ &
+  area-normalised to $19{\times}19$ \\
+Frameworks & 5 Go strategies &
+  domain-determined \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2680,7 +2682,7 @@ It is a \textbf{measurement instrument}:
 given Go rules and a frozen opponent,
 the output is determined.
 \end{remark}
-\end{minipage}}
+\end{minipage}}%
 
 \begin{definition}[Championship trial]\label{def:championship}
 After all gates pass, the championship consists of
