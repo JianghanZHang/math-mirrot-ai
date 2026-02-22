@@ -115,7 +115,7 @@ class MathMirror(nn.Module):
                  temperature: float = 0.1) -> bytes:
         """Autoregressive generation from byte prompt."""
         self.eval()
-        tokens = list(prompt_bytes)
+        tokens = list(prompt_bytes) if prompt_bytes else [0]  # fallback for empty prompt
         device = next(self.parameters()).device
 
         for _ in range(max_len):
