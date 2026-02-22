@@ -218,27 +218,29 @@ class KataGoGoer(Goer):
     def available(self) -> bool:
         return self._available
 
-    def _coord_to_gtp(self, x: int, y: int) -> str:
+    def _coord_to_gtp(self, x: int, y: int,
+                      board_size: int = 19) -> str:
         """Convert (row, col) to GTP coordinate like 'D4'."""
         col_labels = "ABCDEFGHJKLMNOPQRST"
         col = col_labels[y]
-        row = 19 - x
+        row = board_size - x
         return f"{col}{row}"
 
-    def _gtp_to_coord(self, gtp: str) -> tuple[int, int]:
+    def _gtp_to_coord(self, gtp: str,
+                      board_size: int = 19) -> tuple[int, int]:
         """Convert GTP coordinate like 'D4' to (row, col)."""
         col_labels = "ABCDEFGHJKLMNOPQRST"
         col = col_labels.index(gtp[0].upper())
-        row = 19 - int(gtp[1:])
+        row = board_size - int(gtp[1:])
         return (row, col)
 
     def _sync_board(self, board: Board) -> None:
         """Replay board history to KataGo."""
         self._send_command("clear_board")
-        self._send_command("boardsize 19")
+        self._send_command(f"boardsize {board.SIZE}")
         for x, y, color in board.history:
             color_str = "B" if color == 1 else "W"
-            coord = self._coord_to_gtp(x, y)
+            coord = self._coord_to_gtp(x, y, board.SIZE)
             self._send_command(f"play {color_str} {coord}")
 
     def get_move(self, board: Board, color: int) -> tuple[int, int]:
@@ -254,7 +256,7 @@ class KataGoGoer(Goer):
         if move_str.lower() in ("pass", "resign"):
             return (-1, -1)
         try:
-            return self._gtp_to_coord(move_str)
+            return self._gtp_to_coord(move_str, board.SIZE)
         except (ValueError, IndexError):
             return (-1, -1)
 
@@ -277,7 +279,8 @@ class KataGoGoer(Goer):
             for i, tok in enumerate(tokens):
                 if tok == "move" and i + 1 < len(tokens):
                     try:
-                        move_data["move"] = self._gtp_to_coord(tokens[i + 1])
+                        move_data["move"] = self._gtp_to_coord(
+                            tokens[i + 1], board.SIZE)
                     except (ValueError, IndexError):
                         pass
                 elif tok == "winrate" and i + 1 < len(tokens):

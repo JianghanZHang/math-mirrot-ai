@@ -24,23 +24,23 @@ import math
 sys.path.insert(0, "/Users/zhangjianghan/Documents/GitHub/math-mirror-ai")
 
 from math_mirror.go.board import Board
-from math_mirror.go.goer import HeuristicGoer, RandomGoer
+from math_mirror.go.goer import KataGoGoer  # HeuristicGoer removed — KataGo required
 from math_mirror.go.thinker import RuleThinker
 from math_mirror.go.valuer import Valuer
 from math_mirror.go.pool import StrategicPool
 from math_mirror.go.mopl import MOPL
 
+KATAGO_MODEL = "/opt/homebrew/share/katago/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz"
+KATAGO_CONFIG = "/opt/homebrew/share/katago/configs/gtp_example.cfg"
+
 
 def get_borgov():
-    """Get the strongest available opponent."""
-    try:
-        from math_mirror.go.goer import KataGoGoer
-        borgov = KataGoGoer()
-        if borgov.available:
-            return borgov, "KataGo"
-    except Exception:
-        pass
-    return HeuristicGoer(), "HeuristicGoer"
+    """Get KataGo as opponent. HALT if unavailable."""
+    borgov = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
+    if not borgov.available:
+        print("✗ HALT: KataGo required. brew install katago")
+        sys.exit(1)
+    return borgov, "KataGo"
 
 
 def eval_not_lose(mopl, opponent, board_size, n_games=10, komi=None):
@@ -90,7 +90,7 @@ def train_gated(mopl, scales, eval_opponent, eval_games=10,
         base_games = scale["train_games"]
         max_mv = scale["max_moves"]
         komi = scale.get("komi", max(1, round(7.0 * (sz / 19.0) ** 2)))
-        goer = HeuristicGoer()
+        # goer = HeuristicGoer()  # REMOVED: MOPL already has its own goer
 
         print(f"\n  Scale {scale_idx+1}/{len(scales)}: {sz}×{sz} "
               f"(base={base_games}, komi={komi})")
@@ -220,7 +220,10 @@ def run_queens_gambit_gated(n_trials=5, games_per_trial=100,
     print("  PHASE 1: GATED EXPANDING-LATTICE TRAINING")
     print("═" * 60)
 
-    goer = HeuristicGoer()
+    goer = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
+    if not goer.available:
+        print("✗ HALT: KataGo required. brew install katago")
+        sys.exit(1)
     thinker = RuleThinker()
     valuer = Valuer()
     pool = StrategicPool()

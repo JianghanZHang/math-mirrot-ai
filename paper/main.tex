@@ -2000,15 +2000,13 @@ that resolves these threats.
 
 \begin{remark}[The sawtooth is the signature of $S^*$]%
 \label{rem:sawtooth}
-Figure~\ref{fig:sawtooth} shows the experimental evidence.
-At $9 \times 9$, the Queen achieves $V_{\mathrm{heur}} = 0.20$
-when trained only on scales $\leq 9$---well below the
-$V^* = 0.5$ threshold.
-After training on $13 \times 13$ and $19 \times 19$
-(UV completion), the same Queen achieves
-$V_{\mathrm{heur}} = 0.85$ at $9 \times 9$ championship.
-The jump $0.20 \to 0.85$ is caused by pool carryover:
-frameworks learned at larger scales flow back down.
+Figure~\ref{fig:sawtooth} shows the predicted sawtooth pattern
+(placeholder---awaiting regeneration on the prime lattice
+$\Lambda_R = \{5,7,11,13,17,19,23,29,31\}$ with KataGo evaluation).
+The mechanism: at each scale transition, $V_t$ drops
+(harder board, opponent exploits new territory),
+then recovers as pool carryover transfers UV information
+back to IR scales.
 This is Wilson's RG run backwards
 (Remark~\ref{rem:rg-backwards}):
 UV information improves the IR theory.
@@ -2017,6 +2015,10 @@ then recovery---is the visual signature of $S^*$.
 \begin{CJK}{UTF8}{gbsn}
 有时候，你无法在一个小世界里赢，因为你还没有见过更大的世界。
 \end{CJK}
+
+\textbf{Validation status:} specific win rates to be filled after
+championship run on the 9-prime lattice with area-normalized komi
+$\kappa(N) = \max(1, \lceil 7(N/19)^2 \rceil)$.
 \end{remark}
 
 \begin{remark}[Invented policy]\label{rem:invented}
@@ -2040,8 +2042,8 @@ internal consistency.
 \begin{minipage}{0.95\linewidth}
 \centering
 \begin{tikzpicture}[yscale=4.0]
-  % Normalize: t/51 maps [0,510] to [0,10]
-  \def\s{0.01961}  % 1/51
+  % Placeholder axes for prime lattice sawtooth
+  % Scales: {5,7,11,13,17,19,23,29,31}, total ~1400 games
 
   % Axes
   \draw[->] (0,0) -- (10.5,0) node[right]{\small $t$ (games)};
@@ -2050,63 +2052,39 @@ internal consistency.
   % Y-axis labels
   \foreach \y in {0.0, 0.2, 0.4, 0.6, 0.8, 1.0}
     \node[left, font=\scriptsize] at (0,\y) {\y};
-  % X-axis labels
-  \foreach \x/\lab in {0/0, 1.176/60, 2.745/140, 4.706/240, 7.059/360, 10/510}
-    \node[below, font=\scriptsize] at (\x,0) {\lab};
-
-  % Scale transition lines (t/51)
-  \draw[dashed, red!60] (1.176,0) -- (1.176,1.08)
-    node[above, font=\tiny, red!80]{$5{\to}7$};
-  \draw[dashed, red!60] (2.745,0) -- (2.745,1.08)
-    node[above, font=\tiny, red!80]{$7{\to}9$};
-  \draw[dashed, red!60] (4.706,0) -- (4.706,1.08)
-    node[above, font=\tiny, red!80]{$9{\to}13$};
-  \draw[dashed, red!60] (7.059,0) -- (7.059,1.08)
-    node[above, font=\tiny, red!80]{$13{\to}19$};
 
   % 0.5 threshold
   \draw[dotted, blue!40] (0,0.5) -- (10,0.5);
   \node[right, font=\scriptsize, blue!60] at (10.1,0.5) {$V^*$};
 
-  % V_heur (solid black) — actual data, t/51
-  \draw[thick, black]
-    (0.000,0.80) -- (0.392,0.90) -- (0.784,1.00) -- (1.176,1.00) --
-    (1.569,0.40) -- (1.961,0.50) -- (2.353,0.50) -- (2.745,0.30) --
-    (3.137,0.10) -- (3.529,0.00) -- (3.922,0.00) -- (4.314,0.40) -- (4.706,0.30) --
-    (5.098,0.40) -- (5.490,0.50) -- (5.882,0.30) -- (6.275,0.30) -- (6.667,0.30) -- (7.059,0.10) --
-    (7.451,0.40) -- (7.843,0.20) -- (8.235,0.40) -- (8.627,0.30) -- (9.020,0.20) -- (9.412,0.10) -- (9.804,0.00) -- (10.0,0.10);
-  % Data points
-  \foreach \x/\y in {
-    0.000/0.80, 0.392/0.90, 0.784/1.00, 1.176/1.00,
-    1.569/0.40, 1.961/0.50, 2.353/0.50, 2.745/0.30,
-    3.137/0.10, 3.529/0.00, 3.922/0.00, 4.314/0.40, 4.706/0.30,
-    5.098/0.40, 5.490/0.50, 5.882/0.30, 6.275/0.30, 6.667/0.30, 7.059/0.10,
-    7.451/0.40, 7.843/0.20, 8.235/0.40, 8.627/0.30, 9.020/0.20, 9.412/0.10, 9.804/0.00, 10.0/0.10}
-    \fill (\x,\y) circle (1.0pt);
+  % Scale transition lines (predicted positions for 9 primes)
+  \foreach \x/\lab in {0.43/{$5{\to}7$}, 1.0/{$7{\to}11$},
+    1.71/{$11{\to}13$}, 2.57/{$13{\to}17$}, 3.57/{$17{\to}19$},
+    4.64/{$19{\to}23$}, 6.07/{$23{\to}29$}, 7.86/{$29{\to}31$}} {
+    \draw[dashed, red!60] (\x,0) -- (\x,1.08)
+      node[above, font=\tiny, red!80, rotate=45]{\lab};
+  }
 
-  % V_rand (dashed blue)
-  \draw[thick, blue!60, dashed]
-    (0.000,0.70) -- (0.392,0.80) -- (0.784,0.90) -- (1.176,1.00) --
-    (1.569,0.90) -- (1.961,0.90) -- (2.353,0.80) -- (2.745,0.70) --
-    (3.137,1.00) -- (3.529,0.80) -- (3.922,0.70) -- (4.314,0.80) -- (4.706,0.80) --
-    (5.098,0.70) -- (5.490,0.90) -- (5.882,0.80) -- (6.275,0.70) -- (6.667,0.50) -- (7.059,0.80) --
-    (7.451,0.20) -- (7.843,0.30) -- (8.235,0.30) -- (8.627,0.70) -- (9.020,0.50) -- (9.412,0.50) -- (9.804,0.60) -- (10.0,0.60);
+  % Placeholder: schematic sawtooth pattern
+  \node[font=\large, gray] at (5,0.5)
+    {\textbf{DATA PLACEHOLDER}};
+  \node[font=\scriptsize, gray] at (5,0.35)
+    {Awaiting championship run on $\Lambda_R = \{5,7,11,\ldots,31\}$};
 
   % Legend
   \draw[thick, black] (6.5,-0.15) -- (7.2,-0.15)
-    node[right, font=\scriptsize]{$V_{\mathrm{heur}}$};
+    node[right, font=\scriptsize]{$V_{\mathrm{kata}}$};
   \draw[thick, blue!60, dashed] (8.5,-0.15) -- (9.2,-0.15)
     node[right, font=\scriptsize]{$V_{\mathrm{rand}}$};
 \end{tikzpicture}
 \caption{Expanding-lattice convergence: $V_t$ (win rate) vs training
   games $t$.
-  Solid: vs Heuristic opponent.
+  Solid: vs KataGo opponent.
   Dashed: vs Random opponent.
-  Red vertical lines mark scale transitions.
-  The sawtooth pattern: $V_t$ rises within each scale,
-  drops at transitions (harder board), then recovers.
-  510 games, 5 scales, Apple M2 Pro.
-  Data from a single run---no cherry-picking.}
+  Red vertical lines mark scale transitions on the prime lattice
+  $\Lambda_R = \{5,7,11,13,17,19,23,29,31\}$.
+  Komi area-normalized: $\kappa(N) = \max(1, \lceil 7(N/19)^2 \rceil)$.
+  \textbf{Placeholder}---data to be filled after validated championship run.}
 \label{fig:sawtooth}
 \end{minipage}}% end fcolorbox
 \end{figure}
@@ -2693,7 +2671,7 @@ After championship, the budget comparison
  & \textbf{MOPL} & \textbf{AlphaGo} & \textbf{KataGo}
  & \textbf{Human GM} \\
 \midrule
-Training games & $\sim 510$ & $\sim 5\text{M}$ & $\sim$ millions
+Training games & $\sim 1400$\textsuperscript{$\dagger$} & $\sim 5\text{M}$ & $\sim$ millions
   & $\sim 50{,}000$ \\
 Hardware & 1 CPU & 1202+176 & distributed
   & 1 brain \\
@@ -2704,7 +2682,7 @@ External data & zero & human+self & self-play
 \midrule
 \multicolumn{5}{@{}l@{}}{\textit{Wallclock time (Apple M2 Pro, 1 core)}} \\
 \midrule
-Queen's training & $\sim$\,56\,min & $\sim$\,3\,weeks & $\sim$\,days
+Queen's training & TBD\textsuperscript{$\dagger$} & $\sim$\,3\,weeks & $\sim$\,days
   & $\sim$\,10\,years \\
 King's tuning & $<$\,1\,s & --- & ---
   & --- \\
@@ -2716,8 +2694,12 @@ S-MPPI predict & 0.1\,ms/batch & --- & ---
 \medskip
 
 \noindent
-The gap is $\sim 10{,}000\times$ in training games
-and $\sim 10{,}000\times$ in wallclock time.
+{\scriptsize $\dagger$\,9-prime lattice schedule; wallclock TBD
+pending validated championship run.}
+
+\medskip
+\noindent
+The gap is $\sim 3{,}500\times$ in training games.
 The King's temperature learning (100 JAX gradient steps)
 completes in under one second---the backward dual is
 essentially free once the Queen has played.
@@ -2759,8 +2741,8 @@ to defeating the World Champion.
     & World Champion (age 17\textonehalf,
       \begin{CJK}{UTF8}{gbsn}百灵杯\end{CJK}) & 12\,yr \\
 \midrule
-\multicolumn{3}{@{}l}{MOPL (Apple M2 Pro, 1 core, $\sim$510 games)}
- & & $\sim$\,56\,min \\
+\multicolumn{3}{@{}l}{MOPL (Apple M2 Pro, 1 core, $\sim$1400 games\textsuperscript{$\dagger$})}
+ & & TBD\textsuperscript{$\dagger$} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2772,9 +2754,9 @@ Beth trained on $\sim 50{,}000$ games (8$\times$8).
 \begin{CJK}{UTF8}{gbsn}柯洁\end{CJK}
 trained on $\sim 50{,}000$ games (19$\times$19,
 $\sim 10^{170}$ legal positions).
-MOPL trained on $\sim 510$ games in 56 minutes
-on a single CPU core---no GPU, no neural network,
-no external data.
+MOPL trains on $\sim 1400$ games on a single CPU
+core---no GPU, no neural network, no external data
+(wallclock TBD, pending validated run).
 The structural reason: human prodigies operate
 in position space; MOPL operates on
 $\Delta^4$ (5 frameworks).
@@ -2966,7 +2948,7 @@ $\pi_{\mathrm{scale}}(\tau_{\mathrm{UV}})
 is the scale allocation policy.
 $H$ is the user's budget: how far back to look.
 $H = 60$: the King sees the last 60 games.
-$H = 510$: the King sees everything.
+$H = |\Lambda_R| \cdot \bar{n}$: the King sees everything.
 The two temperatures $(\tau_{\mathrm{UV}}, \tau_{\mathrm{IR}})$
 are learned via gradient descent at fixed~$H$;
 they live in log-space ($\tau = e^\theta$) for positivity.
@@ -4341,6 +4323,25 @@ mathematical answer:
   One number. Three fields. One answer.
 }}
 \end{center}
+\end{remark}
+
+\begin{remark}[Author's declaration on commercialization]%
+\label{rem:golden-apple-license}
+The author explicitly permits commercial use of the Golden Apple
+design described in this appendix.
+However, the author requires that all profits derived from
+products implementing this design shall be used exclusively to:
+\begin{enumerate}
+\item reduce the product's price, and
+\item expand production scale,
+\end{enumerate}
+so that more people can access the service.
+Profit extraction beyond these two purposes is not authorized.
+\begin{CJK}{UTF8}{gbsn}
+作者声明：本附录所描述的金苹果设计可以且应当用于商业化，
+但商品本身的利润只能用来降低产品价格、扩大生产规模，
+使更多人能够获得此项服务。
+\end{CJK}
 \end{remark}
 
 \end{document}

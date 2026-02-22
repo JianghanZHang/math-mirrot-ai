@@ -171,7 +171,7 @@ class MOPL:
         black_score, white_score = board.score_territory()
         # Komi: integer for draws, fractional to break ties
         if komi is None:
-            komi_val = 0.5 + (board.SIZE / 19.0) * 6.0
+            komi_val = max(1, round(7.0 * (board.SIZE / 19.0) ** 2))
         else:
             komi_val = komi
         white_score_with_komi = white_score + komi_val

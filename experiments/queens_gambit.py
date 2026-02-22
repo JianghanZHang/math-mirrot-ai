@@ -18,28 +18,28 @@ import math
 sys.path.insert(0, "/Users/zhangjianghan/Documents/GitHub/math-mirror-ai")
 
 from math_mirror.go.board import Board
-from math_mirror.go.goer import HeuristicGoer, RandomGoer
+from math_mirror.go.goer import KataGoGoer  # HeuristicGoer removed — KataGo required
 from math_mirror.go.thinker import RuleThinker
 from math_mirror.go.valuer import Valuer
 from math_mirror.go.pool import StrategicPool
 from math_mirror.go.mopl import MOPL
 
+KATAGO_MODEL = "/opt/homebrew/share/katago/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz"
+KATAGO_CONFIG = "/opt/homebrew/share/katago/configs/gtp_example.cfg"
+
 
 def get_borgov():
-    """Get the strongest available opponent."""
-    try:
-        from math_mirror.go.goer import KataGoGoer
-        borgov = KataGoGoer()
-        if borgov.available:
-            return borgov, "KataGo"
-    except Exception:
-        pass
-    return HeuristicGoer(), "HeuristicGoer"
+    """Get KataGo as opponent. HALT if unavailable."""
+    borgov = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
+    if not borgov.available:
+        print("✗ HALT: KataGo required. brew install katago")
+        sys.exit(1)
+    return borgov, "KataGo"
 
 
 def train_expanding_lattice(mopl, scales, eval_interval=20):
     """Train on expanding lattice. Returns total training games."""
-    goer = HeuristicGoer()
+    # goer = HeuristicGoer()  # REMOVED: MOPL already has its own goer
     games_total = 0
 
     for scale_idx, scale in enumerate(scales):
@@ -53,7 +53,8 @@ def train_expanding_lattice(mopl, scales, eval_interval=20):
 
         for _ in range(n_train):
             framework = mopl.thinker.pick_framework(Board(sz), mopl.pool)
-            game = mopl.play_game(goer, max_moves=max_mv, board_size=sz)
+            game = mopl.play_game(mopl.goer, max_moves=max_mv,
+                                      board_size=sz, komi=scale["komi"])
             outcome_for_pool = 1.0 if game["outcome"] > 0 else 0.0
             mopl.pool.update(framework, outcome_for_pool)
             games_total += 1
@@ -121,13 +122,15 @@ def run_queens_gambit(n_trials=5, games_per_trial=100,
     print(f"Color: alternating B/W (50/50 per trial)")
     print()
 
-    # ── Training schedule ──
+    # Prime lattice: N_k ∈ primes ∩ [5,31]. Zero composites.
+    # Komi area-normalized: κ(N) = max(1, round(7·(N/19)²)).
     scales = [
-        {"size": 5,  "train_games": 60,  "max_moves": 40},
-        {"size": 7,  "train_games": 80,  "max_moves": 70},
-        {"size": 9,  "train_games": 100, "max_moves": 120},
-        {"size": 13, "train_games": 120, "max_moves": 250},
-        {"size": 19, "train_games": 150, "max_moves": 400},
+        {"size": 5,  "train_games": 60,  "max_moves": 40,   "komi": 1},
+        {"size": 7,  "train_games": 80,  "max_moves": 70,   "komi": 1},
+        {"size": 11, "train_games": 100, "max_moves": 160,  "komi": 2},
+        {"size": 13, "train_games": 120, "max_moves": 250,  "komi": 3},
+        {"size": 17, "train_games": 140, "max_moves": 350,  "komi": 6},
+        {"size": 19, "train_games": 150, "max_moves": 400,  "komi": 7},
     ]
 
     # ════════ Phase 1: Training ════════
@@ -135,7 +138,10 @@ def run_queens_gambit(n_trials=5, games_per_trial=100,
     print("  PHASE 1: EXPANDING-LATTICE TRAINING")
     print("═" * 60)
 
-    goer = HeuristicGoer()
+    goer = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
+    if not goer.available:
+        print("✗ HALT: KataGo required. brew install katago")
+        sys.exit(1)
     thinker = RuleThinker()
     valuer = Valuer()
     pool = StrategicPool()

@@ -18,16 +18,22 @@ import time
 sys.path.insert(0, "/Users/zhangjianghan/Documents/GitHub/math-mirror-ai")
 
 from math_mirror.go.board import Board
-from math_mirror.go.goer import HeuristicGoer, RandomGoer
+from math_mirror.go.goer import KataGoGoer, RandomGoer  # HeuristicGoer removed
 from math_mirror.go.thinker import RuleThinker
 from math_mirror.go.valuer import Valuer
 from math_mirror.go.pool import StrategicPool
 from math_mirror.go.mopl import MOPL
 
+KATAGO_MODEL = "/opt/homebrew/share/katago/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz"
+KATAGO_CONFIG = "/opt/homebrew/share/katago/configs/gtp_example.cfg"
+
 
 def run_experiment():
-    # ── Setup ──
-    goer = HeuristicGoer()
+    # ── Setup: KataGo required ──
+    goer = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
+    if not goer.available:
+        print("✗ HALT: KataGo required. brew install katago")
+        import sys; sys.exit(1)
     thinker = RuleThinker()
     valuer = Valuer()
     pool = StrategicPool()
@@ -35,17 +41,20 @@ def run_experiment():
 
     # Opponents for evaluation
     eval_random = RandomGoer()
-    eval_heuristic = HeuristicGoer()
+    eval_katago = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
+    # eval_katago used for both training goer and evaluation opponent
 
-    # ── Expanding-lattice schedule ──
+    # Prime lattice: N_k ∈ primes ∩ [5,31]. Zero composites.
     # Small board = IR (coarse). Large board = UV (fine).
     # Training = UV completion. Wilson's RG run backwards.
+    # Komi area-normalized: κ(N) = max(1, round(7·(N/19)²)).
     scales = [
-        {"size": 5,  "train_games": 60,  "max_moves": 40},
-        {"size": 7,  "train_games": 80,  "max_moves": 70},
-        {"size": 9,  "train_games": 100, "max_moves": 120},
-        {"size": 13, "train_games": 120, "max_moves": 250},
-        {"size": 19, "train_games": 150, "max_moves": 400},
+        {"size": 5,  "train_games": 60,  "max_moves": 40,   "komi": 1},
+        {"size": 7,  "train_games": 80,  "max_moves": 70,   "komi": 1},
+        {"size": 11, "train_games": 100, "max_moves": 160,  "komi": 2},
+        {"size": 13, "train_games": 120, "max_moves": 250,  "komi": 3},
+        {"size": 17, "train_games": 140, "max_moves": 350,  "komi": 6},
+        {"size": 19, "train_games": 150, "max_moves": 400,  "komi": 7},
     ]
     eval_interval = 20     # evaluate every N games within each scale
     eval_games = 10        # games per evaluation
@@ -55,36 +64,36 @@ def run_experiment():
     print("MOPL Expanding-Lattice Convergence")
     print("=" * 60)
     print(f"Scales: {[s['size'] for s in scales]}")
-    print(f"Eval every {eval_interval} games against Random + Heuristic")
+    print(f"Eval every {eval_interval} games against Random + KataGo")
     print(f"Promotion threshold: V_t > {promotion_threshold}")
     print()
 
     # ── Convergence data ──
-    # (t_global, board_size, v_random, v_heuristic, pool_state)
+    # (t_global, board_size, v_random, v_katago, pool_state)
     checkpoints = []
     scale_boundaries = []  # global t where scale changes
     games_total = 0
 
     def evaluate(board_size, t_global):
         wr_rand = 0
-        wr_heur = 0
+        wr_kata = 0
         for _ in range(eval_games):
             g = mopl.play_game(eval_random, max_moves=board_size**2,
                                board_size=board_size)
             if g["outcome"] > 0:
                 wr_rand += 1
-            g2 = mopl.play_game(eval_heuristic, max_moves=board_size**2,
+            g2 = mopl.play_game(eval_katago, max_moves=board_size**2,
                                 board_size=board_size)
             if g2["outcome"] > 0:
-                wr_heur += 1
+                wr_kata += 1
         vr = wr_rand / eval_games
-        vh = wr_heur / eval_games
+        vk = wr_kata / eval_games
         pool_state = {n: round(f["win_rate"], 3)
                       for n, f in pool.frameworks.items()}
-        checkpoints.append((t_global, board_size, vr, vh, pool_state))
+        checkpoints.append((t_global, board_size, vr, vk, pool_state))
         print(f"  t={t_global:>3d}  {board_size}×{board_size}  "
-              f"V_rand={vr:.2f}  V_heur={vh:.2f}  pool={pool_state}")
-        return vr, vh
+              f"V_rand={vr:.2f}  V_kata={vk:.2f}  pool={pool_state}")
+        return vr, vk
 
     # ── Initial evaluation ──
     print("── Evaluation at t=0 (before training) ──")
@@ -129,11 +138,11 @@ def run_experiment():
 
             # Evaluate at current scale
             print(f"── Eval at t={games_total} ({sz}×{sz}) ──")
-            vr, vh = evaluate(sz, games_total)
+            vr, vk = evaluate(sz, games_total)
 
             # Check promotion
-            if vh >= promotion_threshold and scale_idx < len(scales) - 1:
-                print(f"  ★ V_heur={vh:.2f} ≥ {promotion_threshold} → "
+            if vk >= promotion_threshold and scale_idx < len(scales) - 1:
+                print(f"  ★ V_kata={vk:.2f} ≥ {promotion_threshold} → "
                       f"READY for next scale")
 
     total_time = time.time() - t0
@@ -146,14 +155,14 @@ def run_experiment():
     print(f"Total games: {games_total}")
     print(f"Scale boundaries: {scale_boundaries}")
     print()
-    print(f"{'t':>4s}  {'board':>5s}  {'V_rand':>7s}  {'V_heur':>7s}")
+    print(f"{'t':>4s}  {'board':>5s}  {'V_rand':>7s}  {'V_kata':>7s}")
     print("-" * 32)
-    for t, bsz, vr, vh, _ in checkpoints:
+    for t, bsz, vr, vk, _ in checkpoints:
         scale_mark = " |" if t in scale_boundaries else ""
         star_r = "*" if vr > 0.5 else " "
-        star_h = "*" if vh > 0.5 else " "
+        star_k = "*" if vk > 0.5 else " "
         print(f"{t:>4d}  {bsz}×{bsz}  {vr:>6.2f}{star_r}  "
-              f"{vh:>6.2f}{star_h}{scale_mark}")
+              f"{vk:>6.2f}{star_k}{scale_mark}")
 
     print()
     print("Final pool state:")
@@ -163,14 +172,14 @@ def run_experiment():
 
     # ── ASCII convergence plot with scale boundaries ──
     print()
-    print("V_t vs t (win rate against Heuristic):")
+    print("V_t vs t (win rate against KataGo):")
     for row in range(10, -1, -1):
         threshold = row / 10
         line = f"{threshold:.1f} |"
-        for t, bsz, _, vh, _ in checkpoints:
+        for t, bsz, _, vk, _ in checkpoints:
             if t in scale_boundaries and t > 0:
                 line += "|"
-            if vh >= threshold:
+            if vk >= threshold:
                 line += "#"
             else:
                 line += "."
@@ -192,18 +201,18 @@ def run_experiment():
 
     # ── Verdict ──
     final_vr = checkpoints[-1][2]
-    final_vh = checkpoints[-1][3]
+    final_vk = checkpoints[-1][3]
     print()
-    if final_vh > 0.5:
-        print(f"VERDICT: V_heur = {final_vh:.2f} > 0.5 → "
-              "INVENTED POLICY WINS (Black vs Heuristic)")
+    if final_vk > 0.5:
+        print(f"VERDICT: V_kata = {final_vk:.2f} > 0.5 → "
+              "INVENTED POLICY WINS (Black vs KataGo)")
         print("  Policy invented via pure self-play. No external data.")
         print("  Wilson's RG backwards: IR → UV completion confirmed.")
     elif final_vr > 0.5:
         print(f"VERDICT: V_rand = {final_vr:.2f} > 0.5 (beats Random), "
-              f"V_heur = {final_vh:.2f} (approaching Heuristic)")
+              f"V_kata = {final_vk:.2f} (approaching KataGo)")
     else:
-        print(f"VERDICT: V_rand = {final_vr:.2f}, V_heur = {final_vh:.2f} "
+        print(f"VERDICT: V_rand = {final_vr:.2f}, V_kata = {final_vk:.2f} "
               "→ needs more training or larger scales")
 
     return checkpoints
