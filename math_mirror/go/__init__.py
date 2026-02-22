@@ -12,6 +12,8 @@ from .thinker import Thinker, RuleThinker, LLMThinker
 from .valuer import Valuer
 from .pool import StrategicPool
 from .mopl import MOPL
+from .transcriber import Transcriber, GameRecord
+from .colony import Colony, GameRecordStore
 from .drunk import DrunkBoard, DrunkGame, DrunkGoer
 
 __all__ = [
@@ -21,5 +23,7 @@ __all__ = [
     "Valuer",
     "StrategicPool",
     "MOPL",
+    "Transcriber", "GameRecord",
+    "Colony", "GameRecordStore",
     "DrunkBoard", "DrunkGame", "DrunkGoer",
 ]

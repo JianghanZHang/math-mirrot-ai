@@ -7,10 +7,15 @@ This IS the softmax at the macro scale (Thm 8.11).
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import random
-from typing import Any
+import threading
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .transcriber import GameRecord
 
 
 _DEFAULT_FRAMEWORKS: dict[str, str] = {
@@ -40,6 +45,7 @@ class StrategicPool:
 
     def __init__(self) -> None:
         self.frameworks: dict[str, dict[str, Any]] = {}
+        self._locks: dict[str, threading.Lock] = {}
         self._load_defaults()
 
     def _load_defaults(self) -> None:
@@ -50,6 +56,7 @@ class StrategicPool:
                 "games_played": 0,
                 "temperature": 1.0,
             }
+            self._locks[name] = threading.Lock()
 
     def add(self, name: str, description: str) -> None:
         """Add a new framework to the pool."""
@@ -59,6 +66,7 @@ class StrategicPool:
             "games_played": 0,
             "temperature": 1.0,
         }
+        self._locks[name] = threading.Lock()
 
     def sample(self, temperature: float = 1.0) -> str:
         """Sample a framework weighted by win_rate^(1/T).
@@ -99,7 +107,7 @@ class StrategicPool:
         return names[-1]  # fallback
 
     def update(self, name: str, outcome: float) -> None:
-        """Update framework after a game.
+        """Update framework after a game. Per-framework lock prevents race conditions.
 
         Args:
             name: framework name
@@ -107,11 +115,32 @@ class StrategicPool:
         """
         if name not in self.frameworks:
             return
-        fw = self.frameworks[name]
-        n = fw["games_played"]
-        # Running average
-        fw["win_rate"] = (fw["win_rate"] * n + outcome) / (n + 1)
-        fw["games_played"] = n + 1
+        lock = self._locks.get(name)
+        if lock is None:
+            return
+        with lock:
+            fw = self.frameworks[name]
+            n = fw["games_played"]
+            # Running average
+            fw["win_rate"] = (fw["win_rate"] * n + outcome) / (n + 1)
+            fw["games_played"] = n + 1
+
+    def update_from_record(self, name: str, record: "GameRecord") -> None:
+        """Update framework from a GameRecord. Extracts outcome and delegates.
+
+        Interface for future enrichment: currently 1-bit (win/loss/draw),
+        but the full record is available for richer signals later.
+        """
+        outcome = 1.0 if record.outcome > 0 else (0.5 if record.outcome == 0 else 0.0)
+        self.update(name, outcome)
+
+    def snapshot(self) -> dict[str, dict[str, Any]]:
+        """Return a frozen deep copy of framework states for safe concurrent reading.
+
+        Readers get a consistent snapshot. Stale reads are OK —
+        Boltzmann sampling is robust to slightly outdated win rates.
+        """
+        return copy.deepcopy(self.frameworks)
 
     def save(self, path: str) -> None:
         """Save pool to JSON."""

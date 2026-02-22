@@ -168,7 +168,7 @@ class KataGoGoer(Goer):
         self.model_path = model_path
         self.config_path = config_path
         self._process: Optional[subprocess.Popen] = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # reentrant: get_move holds it, _send_command re-acquires
         self._available = self._try_start()
 
     def _try_start(self) -> bool:
@@ -247,9 +247,10 @@ class KataGoGoer(Goer):
         if not self._available:
             log.warning("KataGo not available, returning pass")
             return (-1, -1)
-        self._sync_board(board)
-        color_str = "B" if color == 1 else "W"
-        resp = self._send_command(f"genmove {color_str}")
+        with self._lock:  # atomic: sync + genmove (prevents board corruption in colony)
+            self._sync_board(board)
+            color_str = "B" if color == 1 else "W"
+            resp = self._send_command(f"genmove {color_str}")
         if resp is None:
             return (-1, -1)
         move_str = resp.strip().lstrip("= ").strip()
@@ -264,10 +265,11 @@ class KataGoGoer(Goer):
                        k: int = 5) -> list[dict]:
         if not self._available:
             return []
-        self._sync_board(board)
-        color_str = "b" if color == 1 else "w"
-        resp = self._send_command(
-            f"kata-analyze {color_str} interval 100 maxmoves {k}")
+        with self._lock:  # atomic: sync + analyze
+            self._sync_board(board)
+            color_str = "b" if color == 1 else "w"
+            resp = self._send_command(
+                f"kata-analyze {color_str} interval 100 maxmoves {k}")
         if resp is None:
             return []
         # Parse kata-analyze output (simplified)
@@ -302,8 +304,9 @@ class KataGoGoer(Goer):
     def evaluate(self, board: Board) -> float:
         if not self._available:
             return 0.0
-        self._sync_board(board)
-        resp = self._send_command("kata-analyze b interval 100 maxmoves 1")
+        with self._lock:  # atomic: sync + analyze
+            self._sync_board(board)
+            resp = self._send_command("kata-analyze b interval 100 maxmoves 1")
         if resp is None:
             return 0.0
         # Extract winrate

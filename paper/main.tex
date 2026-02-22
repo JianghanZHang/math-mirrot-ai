@@ -103,6 +103,7 @@
 \newcommand{\cP}{\mathcal{P}}
 \newcommand{\cE}{\mathcal{E}}
 \newcommand{\cR}{\mathcal{R}}
+\newcommand{\cC}{\mathcal{C}}
 \newcommand{\ip}[2]{\langle #1, #2 \rangle}
 \newcommand{\norm}[1]{\lVert #1 \rVert}
 \newcommand{\abs}[1]{\lvert #1 \rvert}
@@ -2909,6 +2910,157 @@ before championship begins.
 \end{CJK}}
 \label{fig:go-board}
 \end{figure}
+
+\subsection{Colony: scaling via shared pheromone}\label{sec:colony}
+
+A single MOPL agent operates on the simplex~$\Delta^{k-1}$
+and discards every game record after extracting the 1-bit outcome
+(win or not-win).
+This section formalises the multi-agent extension:
+$N$ agents sharing a common pool and depositing
+\emph{full symbolic traces} into a persistent store.
+
+\begin{definition}[Game record (\begin{CJK}{UTF8}{gbsn}棋谱\end{CJK})
+  as symbolic circuit]\label{def:game-record}
+A game record is a sequence
+$\gamma = (m_1, m_2, \ldots, m_T)$
+where each move $m_t \in \{B[r,c],\; W[r,c],\; \texttt{pass}\}$
+is a \emph{gate}.
+The full sequence is a symbolic circuit whose output
+is the pair (final board state, outcome $\in \{+1, 0, -1\}$).
+Two records $\gamma, \gamma'$ are \emph{equivalent} iff they
+produce the same final board state and outcome.
+\end{definition}
+
+\begin{definition}[Pheromone
+  (\begin{CJK}{UTF8}{gbsn}信息素\end{CJK})]\label{def:pheromone}
+The pheromone trail is the multiset
+\[
+  \Phi \;=\; \{\gamma_1, \gamma_2, \ldots, \gamma_n\}
+\]
+of all game records deposited by colony agents.
+Each record is \emph{frozen} after creation
+(write-once, read-many):
+once $\gamma_i$ enters $\Phi$ it is never modified or deleted.
+$\Phi$ is the collective memory of the colony.
+\end{definition}
+
+\begin{definition}[Colony]\label{def:colony}
+A colony is the triple
+\[
+  \cC \;=\; (A_1, \ldots, A_N,\; \Pi,\; \Phi)
+\]
+where
+\begin{itemize}
+\item $A_i$ is MOPL agent~$i$, each with its own Goer
+      (KataGo instance) but sharing the pool~$\Pi$
+      and the pheromone store~$\Phi$;
+\item $\Pi$ is the StrategicPool
+      (Definition~\ref{def:strategy-pop})
+      with per-framework locks;
+\item $\Phi$ is the GameRecordStore (append-only,
+      Definition~\ref{def:pheromone}).
+\end{itemize}
+Each agent executes the same MOPL loop:
+sample a framework from~$\Pi$, play one game via its Goer,
+update~$\Pi$ with the 1-bit outcome,
+and deposit the full record~$\gamma$ into~$\Phi$.
+\end{definition}
+
+\begin{proposition}[Lock protocol preserves the running average]%
+\label{prop:lock}
+Concurrent updates to~$\Pi$ under per-framework locks
+preserve the running-average invariant:
+\[
+  \bar{w}_{n+k}
+  \;=\;
+  \frac{\bar{w}_n \cdot n \;+\; \sum_{j=1}^{k} o_j}{n+k}\,,
+\]
+regardless of interleaving order,
+where $o_j \in \{0,1\}$ is the outcome of the $j$-th
+concurrent game.
+\end{proposition}
+
+\begin{proof}
+Each atomic update reads the current $(n, \bar{w}_n)$
+and writes $(n{+}1,\; (\bar{w}_n \cdot n + o)/(n{+}1))$.
+Under a per-framework lock, two updates to the
+\emph{same} framework are serialised;
+updates to \emph{different} frameworks are independent
+(disjoint memory).
+For $k$ serialised updates to one framework,
+the telescoping sum gives
+$\bar{w}_{n+k} = (n\bar{w}_n + \sum_j o_j)/(n{+}k)$
+because addition in $\R$ is commutative and associative,
+so the final value is independent of arrival order.
+\end{proof}
+
+\medskip
+\noindent
+\colorbox{blue!8}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\begin{remark}[Scaling requires a colony, not a larger queen]%
+\label{rem:colony-scaling}
+\color{blue!50!black}%
+A single MOPL agent keeps only the 1-bit outcome of each game;
+the full game record
+(\begin{CJK}{UTF8}{gbsn}棋谱\end{CJK})
+is discarded.
+Scaling by making one agent play more games increases
+\emph{breadth} (more samples on $\Delta^{k-1}$)
+but not \emph{depth}:
+no new symbolic structure is retained.
+
+Scaling by adding $N$ agents who \textbf{deposit} full records
+into shared pheromone~$\Phi$ increases both breadth
+(more games) \emph{and} depth
+(full symbolic traces available for future analysis---e.g.,
+pattern extraction, opening-tree construction,
+or cross-agent imitation).
+
+Zero parameters per agent is unchanged
+(Remark~\ref{rem:zero-param}).
+Total colony parameters $= 0 \times N = 0$.
+\end{remark}
+\end{minipage}}
+
+\medskip
+\noindent
+\colorbox{blue!8}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\begin{remark}[Connection to ant colony optimisation]%
+\label{rem:aco}
+\color{blue!50!black}%
+The correspondence is not analogy---it \emph{is}
+ant colony optimisation (ACO) with Go-specific semantics:
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{ACO concept} & \textbf{MOPL colony} \\
+\midrule
+Pheromone trail     & Pool weights $\bar{w}_i$ \\
+Pheromone deposit   & Running-average update after each game \\
+Probabilistic path  & Boltzmann sampling from $\Pi$ \\
+Pheromone concentration & Framework win rate \\
+Evaporation         & Implicit: $\bar{w}_n$ dilutes as $n \to \infty$ \\
+Full path memory    & Game record store $\Phi$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+The pool \emph{is} the pheromone trail.
+Boltzmann sampling \emph{is} the probabilistic path selection.
+Evaporation is implicit via the running average:
+old outcomes weigh $\mathcal{O}(1/n)$ as $n$ grows.
+The colony adds one new structure---$\Phi$---which
+stores the full symbolic circuits that ACO's
+classical formulation discards.
+\end{remark}
+\end{minipage}}
 
 \subsection{King's Predictive Control: S-MPPI backward dual}%
 \label{sec:kings-control}
