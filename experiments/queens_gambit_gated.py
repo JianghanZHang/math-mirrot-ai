@@ -90,7 +90,7 @@ def train_gated(mopl, scales, eval_opponent, eval_games=10,
         base_games = scale["train_games"]
         max_mv = scale["max_moves"]
         komi = scale.get("komi", max(1, round(7.0 * (sz / 19.0) ** 2)))
-        # goer = HeuristicGoer()  # REMOVED: MOPL already has its own goer
+        # Training opponent = eval_opponent (same KataGo, passed by caller)
 
         print(f"\n  Scale {scale_idx+1}/{len(scales)}: {sz}×{sz} "
               f"(base={base_games}, komi={komi})")
@@ -100,7 +100,7 @@ def train_gated(mopl, scales, eval_opponent, eval_games=10,
         for gi in range(base_games):
             framework = mopl.thinker.pick_framework(Board(sz), mopl.pool)
             mc = 1 if gi % 2 == 0 else -1  # alternate B/W
-            game = mopl.play_game(goer, max_moves=max_mv,
+            game = mopl.play_game(eval_opponent, max_moves=max_mv,
                                   board_size=sz, mopl_color=mc, komi=komi)
             outcome = 1.0 if game["outcome"] > 0 else (
                 0.5 if game["outcome"] == 0 else 0.0)
@@ -122,7 +122,7 @@ def train_gated(mopl, scales, eval_opponent, eval_games=10,
             for gi2 in range(batch):
                 framework = mopl.thinker.pick_framework(Board(sz), mopl.pool)
                 mc = 1 if gi2 % 2 == 0 else -1
-                game = mopl.play_game(goer, max_moves=max_mv,
+                game = mopl.play_game(eval_opponent, max_moves=max_mv,
                                       board_size=sz, mopl_color=mc, komi=komi)
                 outcome = 1.0 if game["outcome"] > 0 else (
                     0.5 if game["outcome"] == 0 else 0.0)

@@ -83,7 +83,7 @@ Komi: `k(N) = max(1, round(7 * (N/19)^2))`. Area-normalized.
 |----|------|---------|------|
 | C1 | POOL ALIVE | `min(games_played) > 0` | every scale |
 | C2 | MASS GAP | `min(win_rate) > eps = 0.01` | every scale |
-| C3 | QUEEN VIABLE | `WR > 0` at this scale | every scale |
+| C3 | QUEEN VIABLE | `NLR = 100%` at this scale (not-lose gate) | every scale |
 | C4 | KING AGREES | `|pred - actual| < delta = 0.15` | every scale |
 | C5 | QUEEN WINS | `WR > 50%` at target | target only |
 

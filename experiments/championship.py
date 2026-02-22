@@ -6,7 +6,7 @@ Together they ARE the locked chain. Fail any one → HALT.
 
   C1  POOL ALIVE     Every framework sampled (games_played > 0)
   C2  MASS GAP       min(win_rate) > ε            (m* > 0)
-  C3  QUEEN VIABLE   WR > 0 at this scale         (not annihilated)
+  C3  QUEEN VIABLE   NLR = 100% at this scale      (not-lose gate)
   C4  KING AGREES    |predicted − actual| < δ     (backward ≈ forward)
   C5  QUEEN WINS     WR > target at target scale  (clock stops)
 
@@ -90,16 +90,17 @@ def verify_conditions(pool, checkpoint, king_pred_wr=None,
                  else f"DEAD: {weakest} has win_rate={m_star:.4f}"),
     }
 
-    # C3: QUEEN VIABLE — WR > 0 at this scale
+    # C3: QUEEN VIABLE — NLR = 100% at this scale (not-lose gate)
     wr = checkpoint.get("win_rate", 0) if checkpoint else 0
+    nlr = checkpoint.get("not_lose_rate", 0) if checkpoint else 0
     conditions["C3"] = {
         "name": "QUEEN VIABLE",
-        "holds": wr > 0,
-        "value": round(wr, 4),
-        "threshold": "> 0",
-        "note": (f"WR={wr:.2f} NLR={checkpoint.get('not_lose_rate', 0):.2f}"
-                 if wr > 0
-                 else "Queen won zero games — annihilated"),
+        "holds": nlr >= 1.0,
+        "value": round(nlr, 4),
+        "threshold": "NLR = 100%",
+        "note": (f"NLR={nlr:.2f} (WR={wr:.2f})"
+                 if nlr >= 1.0
+                 else f"NLR={nlr:.2f} — Queen lost {round((1-nlr)*10)} of 10"),
     }
 
     # C4: KING AGREES — |predicted − actual| < δ
@@ -375,7 +376,7 @@ def run_championship(n_trials=3, games_per_trial=20,
     print("N&S Conditions (all checked at every checkpoint):")
     print(f"  C1  POOL ALIVE     games_played > 0 per framework")
     print(f"  C2  MASS GAP       min(win_rate) > {EPSILON_GAP}")
-    print(f"  C3  QUEEN VIABLE   WR > 0 at every scale")
+    print(f"  C3  QUEEN VIABLE   NLR = 100% at every scale")
     print(f"  C4  KING AGREES    |pred − actual| < {DELTA_CAL}")
     print(f"  C5  QUEEN WINS     WR > {TARGET_WR:.0%} at {target_board}×{target_board}")
     print(f"  C1–C4 necessary at all scales. C5 at target. All ↔ chain.")
