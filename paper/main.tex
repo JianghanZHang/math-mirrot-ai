@@ -2598,10 +2598,10 @@ At scale $N_k$, let $n_k$ evaluation games be played
 (alternating Black/White, integer komi~$\kappa_k$).
 Define
 \[
-  \mathrm{NLR}(N_k) \;=\;
-    \frac{\#\{\text{wins}\} + \#\{\text{draws}\}}{n_k}\,.
+  {\color{red}\mathrm{NLR}}(N_k) \;=\;
+    \frac{{\color{green!50!black}\#\{\text{wins}\}} + {\color{blue}\#\{\text{draws}\}}}{n_k}\,.
 \]
-The gate passes if and only if $\mathrm{NLR}(N_k) = 1$.
+The gate passes if and only if ${\color{red}\mathrm{NLR}}(N_k) = 1$.
 Training continues (up to a budget) until the gate passes
 or the budget is exhausted.
 \end{definition}
