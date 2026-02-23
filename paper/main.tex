@@ -3196,6 +3196,72 @@ which would destroy strategic diversity across the colony.
 \label{fig:io-circuit}
 \end{figure}
 
+\medskip
+\noindent
+\colorbox{blue!8}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\begin{remark}[Knowledge is pheromone, not weights]%
+\label{rem:knowledge-is-pheromone}
+\color{blue!50!black}%
+In a neural network, learned knowledge is stored as
+weight matrices $W \in \mathbb{R}^{d \times d}$:
+opaque, distributed, and requiring interpretation.
+In MOPL, learned knowledge is stored as
+\emph{symbolic pheromone}:
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{What is learned} & \textbf{Representation}
+  & \textbf{Human-readable?} \\
+\midrule
+Which strategy works &
+  $\Pi$: five running averages $\bar{w}_i$ &
+  Yes: $\bar{w}_i = 0.45$ means ``wins 45\%'' \\
+How each game went &
+  $\Phi$: $N$ frozen
+  \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK} &
+  Yes: \texttt{B[3,4] W[5,6] B[pass]} \\
+How to read the above &
+  $(\tau_{\text{UV}}, \tau_{\text{IR}})$: two temperatures &
+  Yes: scalars in $\mathbb{R}_{>0}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Total learned representation:
+$(\Pi,\, \Phi,\, \tau_{\text{UV}},\, \tau_{\text{IR}})$
+$=$ five running averages $+$ $N$ symbolic traces $+$
+two real numbers.
+Every component is individually inspectable.
+Every \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK} can be
+decoded move by move.
+Every pool weight has a direct semantic interpretation.
+
+\medskip\noindent
+This is a \textbf{real} difference, not a philosophical one.
+A neural network that wins 60\% of games stores the reason
+in $10^7$ entangled floats---no one can say \emph{why}
+it chose move~D4.
+MOPL stores the reason in the pool:
+``\textit{aggressive} has $\bar{w} = 0.72$ after 40 games;
+the last three winning
+\begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}
+opened at D4.''
+The explanation \emph{is} the representation.
+There is nothing behind the curtain.
+
+\medskip\noindent
+The trade is explicit:
+\emph{capacity} (a neural network can represent
+$2^{d^2}$ functions) for \emph{verifiability}
+(every MOPL decision has a finite, readable proof trail).
+Remark~\ref{rem:zero-param}: zero free parameters.
+This remark: zero hidden knowledge.
+\end{remark}
+\end{minipage}}
+
 \subsection{King's Predictive Control: S-MPPI backward dual}%
 \label{sec:kings-control}
 
