@@ -317,6 +317,48 @@ example and every output.
   (\S\ref{sec:queens-gambit}--\S\ref{sec:double-boltzmann}).
 \end{enumerate}
 
+\subsection{Reader's guide}\label{sec:guide}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Part} & \textbf{Sections} & \textbf{Question answered} \\
+\midrule
+\textsc{The Mirror}
+  & \S\ref{sec:arch}--\S\ref{sec:finetune}
+  & What is the system? \\
+\textsc{The Physics}
+  & \S\ref{sec:agent}--\S\ref{sec:rg}
+  & Why does it work? \\
+\textsc{The Controller}
+  & \S\ref{sec:sarsa}--\S\ref{sec:mcp}
+  & How is it deployed? \\
+\textsc{The Game}
+  & \S\ref{sec:experiments}
+  & What does it look like in practice? \\
+\textsc{Appendices}
+  & A--C
+  & Implementation, notation, vision extension \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+A single motif recurs at every scale:
+an \emph{operator form} (algebraic),
+a \emph{path integral} (stochastic),
+and a \emph{duality} (symmetry).
+In the mirror it is $z = \sigma(Wx)$, token sampling,
+gauge invariance.
+In the physics it is the RG, Fokker--Planck,
+transcommutation.
+In the game it is the Euler product
+$\zeta(s)^{-1} = \prod_p(1-p^{-s})$,
+telescope search, self-duality.
+The reader who spots this pattern in one part
+will find it waiting in every other.
+
 % ============================================================
 %  Section 2: Architecture
 % ============================================================
