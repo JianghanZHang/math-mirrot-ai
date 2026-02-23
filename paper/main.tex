@@ -6008,15 +6008,22 @@ forces state-dependent discounting in Go.
       (\mathbf{1}[z_{\mathrm{foot},i} \leq 0])_{i=1}^4$
       \Comment{contact mode: emergent diagnostic}
     \Statex
-    \Comment{Reward: track Drunk Command}
+    \Comment{Reward: survive $+$ track Drunk Command}
     \State $r_t \gets
+        \;W_{\mathrm{alive}}
         -W_v \norm{v_{\mathrm{CoM}} - v_{\mathrm{cmd}}}^2
         -W_h (z{-}h_{\mathrm{ref}})^2
         -W_R \norm{R_{\mathrm{body}}{-}I}_F^2
-        -W_u \norm{u_t}^2$
+        -W_u \norm{u_t}^2
+        -W_{\Delta u}\norm{u_t{-}u_{t-1}}^2$
     \State $d_t \gets
       \mathbf{1}[x_{t+1} \notin K_{\mathrm{loco}}]$;\;
-      store $(o_t, u_t, r_t, o_{t+1}, d_t) \to \cB$;\;
+      \textbf{if} $d_t{=}1$:\;
+      $r_t \gets r_t - W_{\mathrm{fall}}$
+      \Comment{terminal penalty: violating $K_{\mathrm{loco}}$}
+    \State store
+      $(o_t, u_t, r_t, o_{t+1}, d_t,
+        v_{\mathrm{cmd}}) \to \cB$;\;
       \textbf{if} $d_t{=}1$ \textbf{break}
       \Comment{fell $\Rightarrow$ done}
     \Statex
@@ -6031,13 +6038,13 @@ forces state-dependent discounting in Go.
     \Statex
     \Comment{Learn: SAC
       (Prop.~\ref{prop:svot-sac})}
-    \State Sample $(o, u, r, o', d) \sim \cB$;\quad
+    \State Sample $(o, u, r, o', d, v) \sim \cB$;\quad
       $\tilde u' \sim \pi_\theta(\cdot \mid
-        g_\phi(o'), v_{\mathrm{cmd}})$
+        g_\phi(o'), v)$
     \State $y \gets r + \gamma(1{-}d)\bigl[
       \bar Q_{\bar\psi}(g_\phi(o'), \tilde u')
       - \alpha \log \pi_\theta(\tilde u' \mid
-        g_\phi(o'), v_{\mathrm{cmd}})\bigr]$
+        g_\phi(o'), v)\bigr]$
       \Comment{TD target}
     \State \textbf{Critic:}\;
       $\psi \gets \psi
@@ -6048,7 +6055,7 @@ forces state-dependent discounting in Go.
       $(\theta,\phi) \gets (\theta,\phi)
         - \eta\,\nabla_{(\theta,\phi)}\bigl[
           \alpha\log\pi_\theta(\tilde u \mid
-            g_\phi(o), v_{\mathrm{cmd}})
+            g_\phi(o), v)
           - Q_\psi(g_\phi(o), \tilde u)\bigr]$
       \Comment{$\DKL$ term}
     \State $\bar\psi \gets
@@ -6102,6 +6109,59 @@ Choosing between them is choosing a numerical method,
 not changing the mathematics.
 The algorithm is identical in all cases---only the
 $\mathrm{Step}$ function pointer changes.
+\end{remark}
+
+\begin{remark}[Reward structure and replay semantics]
+\label{rem:reward-structure}
+Three design choices in
+Algorithm~\ref{alg:svot-locomotion}
+deserve explanation.
+
+\medskip\noindent
+\textbf{(i) Survival bonus and terminal penalty.}\;
+Every reward term except $W_{\mathrm{alive}}$
+is a penalty ($\leq 0$).
+Without $W_{\mathrm{alive}} > 0$,
+the return-maximising policy is to terminate
+immediately (dying incurs no further penalty).
+The survival bonus ensures that
+remaining in $K_{\mathrm{loco}}$
+is strictly better than leaving it;
+the terminal penalty $W_{\mathrm{fall}}$
+reinforces the viability boundary as a hard wall.
+Together they encode:
+\emph{alive is rewarded, falling is punished}.
+
+\medskip\noindent
+\textbf{(ii) Command in the replay buffer.}\;
+The tuple stored in $\cB$ includes
+$v_{\mathrm{cmd}}$
+because SAC is off-policy:
+transitions collected under one command
+are reused to update the critic and actor
+for any command.
+Omitting $v_{\mathrm{cmd}}$ would make
+the $Q$-function and policy condition on a
+stale command---a silent Markov violation.
+
+\medskip\noindent
+\textbf{(iii) Why $T \sim \mathrm{Exp}(\lambda)$.}\;
+The exponential distribution is
+\emph{memoryless}:
+$P(T > t{+}s \mid T > t) = P(T > s)$.
+At every time step, the probability of a
+command switch is the same regardless of
+elapsed time.
+This means the remaining time
+$\tau_{\mathrm{remain}} = T - t\Delta t$
+carries no information beyond what is already
+in the current state $x_t$---the
+MDP property is preserved without
+augmenting the state.
+Any other switch-time distribution
+(e.g.\ fixed-length episodes)
+would require $\tau_{\mathrm{remain}}$ in the state,
+breaking the Markov assumption.
 \end{remark}
 
 \begin{remark}[Where the gradient flows]
@@ -6304,6 +6364,53 @@ The truncated Student-$t$
 enforces $|\tau_i| \leq \bar\tau_i$
 via the normaliser $Z_i$---no
 Jacobian correction, exact bounds.
+
+\medskip\noindent
+\textbf{Non-smooth $Q$ is not a problem.}\;
+The $Q$-function is locally Lipschitz
+but \emph{not} $C^1$ at contact-mode
+boundaries
+(the Hessian $\nabla^2_\tau Q$
+jumps when $J_c$ changes rank).
+Classical gradients $\nabla_\tau Q$
+are undefined on this zero-measure set,
+so direct policy optimisation would require
+Clarke subdifferentials
+$\partial_C Q$.
+The Student-$t$ policy resolves this
+\emph{automatically}:
+the expected $Q$ under the policy,
+\[
+  \bar Q(\theta)
+  \;\coloneqq\;
+  \mathbb{E}_{\pi_\theta}\!\bigl[Q(x, \tau)\bigr]
+  \;=\;
+  \int_{[-\bar\tau,\bar\tau]^{12}}
+    \!\!Q(x, \tau)\,
+    \pi_\theta(\tau \mid x, v_{\mathrm{cmd}})\,
+    d\tau,
+\]
+is smooth in $(\theta, \phi)$
+because $\pi_\theta$ has full support
+on $[-\bar\tau, \bar\tau]^{12}$
+and is $C^\infty$ in its parameters.
+Integrating a Lipschitz function
+against a smooth kernel
+with full support
+produces a smooth function---the
+policy acts as a \emph{mollifier}.
+The SAC policy gradient
+$\nabla_\theta \bar Q
+  = \mathbb{E}_\pi[Q\,\nabla_\theta\log\pi_\theta]$
+(score function identity)
+is therefore well-defined
+without any appeal to subdifferential calculus.
+Non-smoothness of $Q$
+at mode boundaries is absorbed by the
+stochastic integration,
+exactly as the Drunk Walk absorbs
+strategic discontinuities in Go
+(Remark~\ref{rem:model-free-locomotion}).
 \end{remark}
 
 %% ── Block 10: Free space, holonomy, theorem ───────────────
@@ -6592,6 +6699,166 @@ Under the Go2 parameters
   (countable dense set from polynomials
   on a compact manifold).
 \end{proof}
+
+\begin{proposition}[Riesz structure of the policy space]
+\label{prop:riesz-policy}
+Let $\cH = \cH_{\mathrm{loco}}$
+(Proposition~\ref{prop:free-space-wp}\textup{(iv)})
+and let
+$Q \in L^\infty\!\bigl(
+  \cF_{\mathrm{loco}} \times
+  [-\bar\tau,\bar\tau]^{12}\bigr)$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item \emph{Riesz representative.}\;
+  The evaluation functional
+  \[
+    \ell_Q(\pi)
+    \;=\;
+    \int_{\cF_{\mathrm{loco}}}
+    \int_{[-\bar\tau,\bar\tau]^{12}}
+    \!\!\pi(\tau \mid x)\,Q(x,\tau)\,
+    \rho^*(dx)\,d\tau
+  \]
+  is a continuous linear functional on $\cH$.
+  By the Riesz representation theorem,
+  there exists a unique $h_Q \in \cH$
+  such that
+  $\ell_Q(\pi) = \langle \pi, h_Q \rangle_\cH$
+  for all $\pi \in \cH$.
+  On compact $\cF_{\mathrm{loco}}$
+  with finite $\rho^*$,
+  $L^\infty \hookrightarrow L^2$,
+  so $h_Q = Q$ (natural embedding):
+  the $Q$-function IS
+  the Riesz representative of the critic.
+
+\item \emph{Existence and uniqueness.}\;
+  The SVOT loss
+  \[
+    \cL(\pi)
+    \;=\;
+    -\ell_Q(\pi)
+    + \alpha\,\DKL(\pi \| \rho^*)
+  \]
+  is strictly convex on the closed convex set
+  $\Delta(\cH)
+    = \{\pi \in \cH :
+    \pi \geq 0,\;
+    \textstyle\int \pi\,d\tau = 1\}$
+  (linearity of $\ell_Q$
+  $+$ strict convexity of $\DKL$).
+  The minimiser exists
+  (weak compactness of $\Delta(\cH)$)
+  and is unique.
+
+\item \emph{Closed form.}\;
+  The unique minimiser is the
+  soft-Boltzmann policy:
+  \begin{equation}\label{eq:boltzmann-optimal}
+    \pi^*(\tau \mid x, v_{\mathrm{cmd}})
+    \;=\;
+    \frac{\rho^*(\tau \mid x)\,
+      \exp\!\bigl(Q(x,\tau)/\alpha\bigr)}
+         {Z(x)},
+    \qquad
+    Z(x)
+    = \!\int_{[-\bar\tau,\bar\tau]^{12}}
+      \!\!\rho^*\exp(Q/\alpha)\,d\tau.
+  \end{equation}
+  This is the exponential tilt of
+  the Drunk Command $\rho^*$
+  by the Riesz representative $h_Q = Q$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(i)~Cauchy--Schwarz:
+$|\ell_Q(\pi)|
+  \leq \|Q\|_{L^\infty}\,\|\pi\|_\cH < \infty$.
+Continuity and linearity invoke Riesz.
+The embedding $h_Q = Q$ follows from
+$\|Q\|_\cH \leq \|Q\|_{L^\infty}\,\rho^*(\cF_{\mathrm{loco}})^{1/2} < \infty$
+(compact base, finite measure).
+(ii)~$\DKL$ is strictly convex
+and lower semicontinuous on $\Delta(\cH)$;
+$-\ell_Q$ is linear (hence convex);
+the sum is strictly convex.
+Coercivity: $\DKL(\pi \| \rho^*) \to \infty$
+as $\|\pi\|_\cH \to \infty$.
+(iii)~First variation
+$\delta\cL/\delta\pi
+  = -Q + \alpha(\log\pi - \log\rho^*) + \lambda = 0$
+($\lambda$ the Lagrange multiplier for $\int\pi = 1$);
+solving gives~\eqref{eq:boltzmann-optimal}.
+\end{proof}
+
+\begin{remark}[Free space as Embed--Prove--Pullback]
+\label{rem:free-space-epp}
+The four levels of the free space
+(Definitions~\ref{def:free-space-locomotion}--\ref{def:free-space-analytic})
+reproduce the Mirror Reflection pipeline
+(Algorithm~\ref{alg:reflect}):
+
+\smallskip
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Level} & \textbf{Free space}
+  & \textbf{Mirror Reflection} \\
+\midrule
+0 & Configuration $\mathcal{Q}$
+  & Raw input \\
+1 & Viability $K_{\mathrm{loco}}$
+  & \textbf{Embed} (formalise constraints) \\
+2 & Free core $\cF_{\mathrm{loco}}$
+  & \textbf{Prove} (verify viability) \\
+3 & Policy Hilbert space $\cH_{\mathrm{loco}}$
+  & \textbf{Pullback} (extract usable policy) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip\noindent
+\textbf{Embed.}\;
+The physical configuration
+$q \in \mathcal{Q}$
+is embedded into observation space
+$x = g_\phi(o) \in \R^{42}$,
+and the constraint
+$x \in K_{\mathrm{loco}}$
+is formalised
+(Definition~\ref{def:viability-locomotion}).
+\textbf{Prove.}\;
+The viability kernel
+$\mathrm{Viab}(K_{\mathrm{loco}})$
+is computed---the free core
+$\cF_{\mathrm{loco}}$ is the standing equilibrium
+from which all viable behaviours are reachable
+(Level~2).
+\textbf{Pullback.}\;
+The optimal policy
+$\pi^* \in \cH_{\mathrm{loco}}$
+(Proposition~\ref{prop:riesz-policy})
+is pulled back to a concrete torque command
+$\tau = \pi^*(x, v_{\mathrm{cmd}})$.
+
+\medskip\noindent
+The Riesz representative
+$h_Q = Q$
+is the \emph{proof object}:
+it certifies that $\pi^*$ is optimal.
+The Student-$t$ parametrisation
+(Definition~\ref{def:student-t-policy})
+is the finite-dimensional
+approximation of the pullback,
+with degrees of freedom
+$\nu_\theta(x)$
+tracking the structural complexity
+(contact-mode count) of the proof.
+This is not metaphor---it is the
+same functor applied to a different category
+(Remark~\ref{rem:mopl-locomotion-iso}).
+\end{remark}
 
 \begin{definition}[Mechanical connection and holonomy]
 \label{def:holonomy-locomotion}
