@@ -122,7 +122,7 @@ def run_queens_gambit(n_trials=5, games_per_trial=100,
     print(f"Color: alternating B/W (50/50 per trial)")
     print()
 
-    # Prime lattice: N_k ∈ primes ∩ [5,31]. Zero composites.
+    # 9-prime lattice Λ_R from pool.LAMBDA_R
     # Komi area-normalized: κ(N) = max(1, round(7·(N/19)²)).
     scales = [
         {"size": 5,  "train_games": 60,  "max_moves": 40,   "komi": 1},
@@ -131,6 +131,9 @@ def run_queens_gambit(n_trials=5, games_per_trial=100,
         {"size": 13, "train_games": 120, "max_moves": 250,  "komi": 3},
         {"size": 17, "train_games": 140, "max_moves": 350,  "komi": 6},
         {"size": 19, "train_games": 150, "max_moves": 400,  "komi": 7},
+        {"size": 23, "train_games": 200, "max_moves": 600,  "komi": 10},
+        {"size": 29, "train_games": 250, "max_moves": 900,  "komi": 16},
+        {"size": 31, "train_games": 300, "max_moves": 1000, "komi": 19},
     ]
 
     # ════════ Phase 1: Training ════════

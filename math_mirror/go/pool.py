@@ -36,6 +36,10 @@ _DEFAULT_FRAMEWORKS: dict[str, str] = {
     ),
 }
 
+# Expanding lattice of prime board sizes (paper §8, Definition 8.5).
+# |LAMBDA_R| = 9.  Composite sizes (e.g. 9 = 3²) excluded.
+LAMBDA_R: list[int] = [5, 7, 11, 13, 17, 19, 23, 29, 31]
+
 
 class StrategicPool:
     """Pool of strategic frameworks with Boltzmann sampling.

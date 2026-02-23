@@ -44,7 +44,7 @@ def run_experiment():
     eval_katago = KataGoGoer(model_path=KATAGO_MODEL, config_path=KATAGO_CONFIG)
     # eval_katago used for both training goer and evaluation opponent
 
-    # Prime lattice: N_k ∈ primes ∩ [5,31]. Zero composites.
+    # 9-prime lattice Λ_R from pool.LAMBDA_R
     # Small board = IR (coarse). Large board = UV (fine).
     # Training = UV completion. Wilson's RG run backwards.
     # Komi area-normalized: κ(N) = max(1, round(7·(N/19)²)).
@@ -55,6 +55,9 @@ def run_experiment():
         {"size": 13, "train_games": 120, "max_moves": 250,  "komi": 3},
         {"size": 17, "train_games": 140, "max_moves": 350,  "komi": 6},
         {"size": 19, "train_games": 150, "max_moves": 400,  "komi": 7},
+        {"size": 23, "train_games": 200, "max_moves": 600,  "komi": 10},
+        {"size": 29, "train_games": 250, "max_moves": 900,  "komi": 16},
+        {"size": 31, "train_games": 300, "max_moves": 1000, "komi": 19},
     ]
     eval_interval = 20     # evaluate every N games within each scale
     eval_games = 10        # games per evaluation

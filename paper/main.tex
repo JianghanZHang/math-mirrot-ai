@@ -17,10 +17,11 @@
 \usepackage{colortbl}
 \usepackage{hyperref}
 \usepackage[margin=1in]{geometry}
+\usepackage{float}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,calc}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathmorphing}
 \usepackage{CJKutf8}
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable,skins}
@@ -118,11 +119,11 @@
 \newcommand{\DKL}{D_{\mathrm{KL}}}
 \newcommand{\Breg}{D_\psi}
 \newcommand{\softmax}{\mathrm{softmax}}
-\newcommand{\Verify}{\mathrm{Verify}}
+% \Verify removed (dead macro)
 \newcommand{\Embed}{\mathrm{Embed}}
 \newcommand{\Pullback}{\mathrm{Pullback}}
 \newcommand{\Mirror}{\mathrm{Mirror}}
-\newcommand{\ASCII}{\mathrm{ASCII}}
+% \ASCII removed (dead macro)
 
 % ============================================================
 \title{\textbf{Math Mirror: A Self-Validating Byte-Level Transformer\\
@@ -358,6 +359,39 @@ $\zeta(s)^{-1} = \prod_p(1-p^{-s})$,
 telescope search, self-duality.
 The reader who spots this pattern in one part
 will find it waiting in every other.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}clll@{}}
+\toprule
+& \textbf{Component} & \textbf{Formal identity}
+  & \textbf{Loc.} \\
+\midrule
+1 & Mirror Reflection
+  & Embed--Prove--Pullback
+  & \S\ref{sec:mirror} \\
+2 & MOPL
+  & Online Projected Verification Descent
+  & \S\ref{sec:experiments} \\
+3 & Drunk Walk
+  & Self-Variational OT Sampling
+  & \S\ref{sec:experiments} \\
+4 & Drunk Calibration
+  & Base Measure Estimation
+  & \S\ref{sec:experiments} \\
+5 & Queen's Training
+  & Replicator Flow on Expanding Lattice
+  & \S\ref{sec:experiments} \\
+6 & King's Control
+  & Double Boltzmann Temperature Optimization
+  & \S\ref{sec:experiments} \\
+7 & Verification Gate
+  & Three-Level Symbolic--Numeric Oracle
+  & App.~\ref{app:impl} \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 % ============================================================
 %  Section 2: Architecture
@@ -989,10 +1023,11 @@ The full agentic loop is implemented in the \texttt{MirrorAgent}
 class.
 
 \begin{algorithm}[ht]
-\caption{Mirror Reflection}\label{alg:reflect}
+\caption{Mirror Reflection
+  \textup{[Embed--Prove--Pullback]}}\label{alg:reflect}
 \begin{algorithmic}[1]
 \Require User input $q \in \cS_{\text{NL}}$
-\Ensure Verified mathematical response or \texttt{REJECTED}
+\Ensure Verified response $\ell \in \cS_{\text{NL}}$, or \texttt{REJECTED}
 \State $m \gets \Embed(q)$ \Comment{LLM: natural language $\to$ math ASCII}
 \State $r \gets \Mirror_\theta(m)$ \Comment{Byte-level transformer: compute}
 \State $v \gets \cG(r)$ \Comment{Symbolic verification}
@@ -1796,7 +1831,7 @@ Three properties force this:
   Every trajectory has an $\omega$-limit set;
   no orbit diverges, and no coordinate exceeds~$1$.
 \item \textbf{Lyapunov function.}
-  The KL divergence $D_{\mathrm{KL}}(x^* \| x)$
+  The KL divergence $\DKL(x^* \| x)$
   from the equilibrium~$x^*$ is non-increasing
   along trajectories (Theorem~\ref{thm:three-names}\,b).
   This is a natural loss function that needs
@@ -2548,11 +2583,15 @@ The colour convention (Remark~\ref{rem:color}) applies:
 \end{definition}
 
 \begin{algorithm}[ht]
-\caption{MOPL --- Meta-Optimal Policy Learning}\label{alg:mopl}
+\caption{MOPL --- Meta-Optimal Policy Learning
+  \textup{[Online Projected Verification Descent]}}\label{alg:mopl}
 \begin{algorithmic}[1]
-\Require Board state $b_t$, framework pool~$\cP$, temperature~$\tau$
-\Ensure Stone placement $a_t$, updated pool~$\cP$
-\State \textsc{Seed}: sample framework $F \sim \softmax(\cP / \tau)$
+\Require Board state $b_t \in \{-1,0,1\}^{N \times N}$,
+  pool~$\cP$ with weights $\bar{w} \in [0,1]^k$,
+  temperature $\tau_{\mathrm{IR}} \in \mathbb{R}_{>0}$
+\Ensure Stone placement $a_t \in \{1,\ldots,N\}^2$,
+  updated pool~$\cP$
+\State \textsc{Seed}: sample framework $F \sim \softmax\!\bigl(\log \bar{w} / \tau_{\mathrm{IR}}\bigr)$
   \Comment{Thinker picks strategy}
 \State \textsc{Embed}: LLM describes $b_t$ in terms of $F$
   \Comment{$\Embed(b_t \mid F)$}
@@ -2560,11 +2599,12 @@ The colour convention (Remark~\ref{rem:color}) applies:
   \Comment{$\Mirror_\theta(b_t)$}
 \State \textsc{Think}: LLM evaluates candidates against $F$, ranks
   \Comment{strategic filter}
-\State \textsc{Verify}: KataGo confirms tactical soundness (win rate $\geq w_{\min}$)
-  \Comment{$\cG$}
+\State \textsc{Verify}: confirm $a_t$ is a legal move
+  \Comment{$\cG$ (legality check)}
 \State \textsc{Play}: place stone $a_t$
-\State \textsc{Value}: after game ends, score $F$ by outcome, update
-  $\cP \gets \cP + \eta \nabla_F \text{score}(F)$
+\State \textsc{Value}: after game ends, update
+  $\bar{w}_F \gets (\bar{w}_F \cdot n_F + o)\, / \,(n_F + 1)$
+  \Comment{running average}
 \end{algorithmic}
 \end{algorithm}
 
@@ -2689,7 +2729,7 @@ origin of the (learning, optimisation) plane.
 \medskip\noindent
 \textbf{Orthogonality.}\;
 Queen updates $\bar{w} \in [0,1]^k$;
-King updates $\tau \in \mathbb{R}^2$.
+King updates $(\tau_{\mathrm{IR}}, \tau_{\mathrm{UV}}) \in \mathbb{R}_{>0}^2$.
 Disjoint parameter coordinates.
 Errors are additive, not multiplicative.
 
@@ -2776,6 +2816,61 @@ $G = (V, E)$, $|V| = N^2$, is defined by:
   Higher cumulative score wins.
 \end{enumerate}
 \end{definition}
+
+\begin{algorithm}[ht]
+\caption{Drunk Walk
+  \textup{[Self-Variational Optimal Transport Sampling]}}\label{alg:drunk-walk}
+\begin{algorithmic}[1]
+\Require Board size $N \in \mathbb{N}$,
+  coin probability $p = \tfrac{1}{2}$
+\Ensure Game record $\omega \sim \rho^*_N$,
+  scores $s^B, s^W \in \mathbb{N}_0$
+\State $O \gets \varnothing$
+  \Comment{occupied set $O \subseteq V = \{1,\ldots,N\}^2$}
+\State $s^B, s^W \gets 0,\, 0$;\;
+  $\textit{skips} \gets 0$
+\For{$t = 1, 2, \ldots$}
+  \State $\textit{player} \gets
+    \begin{cases} B & t \text{ odd} \\ W & t \text{ even}
+    \end{cases}$
+    \Comment{deterministic alternation}
+  \State $c_t \sim \mathrm{Bernoulli}(p)$
+    \Comment{\textsc{Whether}: coin flip}
+  \If{$c_t = 0$ or $V \setminus O = \varnothing$}
+    \State $\textit{skips} \gets \textit{skips} + 1$
+      \Comment{skip}
+  \Else
+    \State $v_t \sim \mathrm{Uniform}(V \setminus O)$
+      \Comment{\textsc{Where}: random placement}
+    \State $O \gets O \cup \{v_t\}$;\;
+      $\textit{skips} \gets 0$
+    \State $\Gamma \gets
+      \textsc{FloodFill}(V,\, O)$
+      \Comment{new enclosed regions}
+    \If{$\Gamma \neq \varnothing$}
+      \State $s^{\textit{player}} \gets
+        s^{\textit{player}} + |\mathrm{int}(\Gamma)|$
+        \Comment{\textsc{Closure}: score interior}
+    \EndIf
+  \EndIf
+  \If{$\textit{skips} \geq 2$}
+    \State \textbf{break}
+      \Comment{two consecutive skips $\Rightarrow$ terminal}
+  \EndIf
+\EndFor
+\State \Return $(s^B, s^W)$, game record $\omega$
+\end{algorithmic}
+\end{algorithm}
+
+\noindent
+The three \textsc{small-caps} labels mark the three
+axes of the transcommutation
+(Remark~\ref{rem:transcommutation}):
+\textsc{Whether} (coin), \textsc{Where} (dice),
+and \textsc{Closure} (topology).
+The first two are random; the third is deterministic.
+The product is $\rho^*_N$
+(Definition~\ref{def:svot}).
 
 \begin{remark}[Transcommutation: complexity
   $\leftrightarrow$ randomness]%
@@ -3112,6 +3207,50 @@ The Drunk Game is to Go what $s \mapsto 1-s$ is to
 the zeta function.
 \end{remark}
 
+\begin{definition}[Self-variational optimal transport]%
+\label{def:svot}
+Let $\rho^*_N$ denote the game measure induced by
+the Drunk Game (Definition~\ref{def:drunk-game})
+on the $N \times N$ board:
+the product of $\mathrm{Bernoulli}(\tfrac{1}{2})$ coin flips
+and uniform placements.
+Since $\rho^*_N$ is the uniform measure on game paths,
+the free energy
+(Definition~\ref{def:transcommutation})
+of any policy~$\pi$ decomposes as
+\begin{equation}\label{eq:svot}
+  F(\pi)
+  \;=\;
+  F(\rho^*_N)
+  \;+\;
+  \underbrace{\bigl(\mathbb{E}_\pi[E]
+    - \mathbb{E}_{\rho^*}[E]\bigr)}_{%
+    \Delta E\;\text{(score)}}
+  \;+\;
+  \underbrace{\DKL(\pi \,\|\, \rho^*_N)}_{%
+    \text{entropy cost}}\,.
+\end{equation}
+We call $\rho^*_N$ a \emph{self-variational optimal transport}:
+\begin{itemize}[nosep]
+\item \emph{Self:}\;
+  source $=$ target
+  ($\cF_t = \cB_{T-t}$, Definition~\ref{def:self-dual}).
+\item \emph{Variational:}\;
+  unique zero-cost reference ($\DKL = 0$).
+\item \emph{Optimal:}\;
+  maximum entropy ($H(\rho^*_N) \geq H(\pi)$ for all~$\pi$).
+\item \emph{Transport:}\;
+  each game moves mass from $\varnothing$ to a scored
+  configuration; $M$~games sample $M$~couplings
+  (Algorithm~\ref{alg:drunk-calibration}).
+\end{itemize}
+Every non-trivial policy $\pi \neq \rho^*_N$ is a
+non-trivial transcommutation
+(Definition~\ref{def:transcommutation}):
+it converts entropy into score,
+with $\DKL$ as the exchange rate.
+\end{definition}
+
 \begin{remark}[Model-free RL\@: modeling the free core]%
 \label{rem:model-free}
 \color{black!60}%
@@ -3165,6 +3304,9 @@ At the origin---zero learning, zero optimisation,
 zero dissipation---the free core is the \emph{entire}
 state space: $\cF = \cX$.
 Everything is free.
+Equation~\eqref{eq:svot} makes this precise:
+$F(\rho^*_N) = F^*$ is the free energy at
+$\DKL = 0$.
 The Drunk Game is not ``RL without a model.''
 It is RL \emph{of} the free thing.
 ``Model-free'' is not jargon.
@@ -3173,31 +3315,27 @@ It is a theorem name:
 \end{remark}
 
 \begin{algorithm}[ht]
-\caption{Drunk Calibration (Phase~0)}\label{alg:drunk-calibration}
+\caption{Drunk Calibration (Phase~0)
+  \textup{[Base Measure Estimation]}}\label{alg:drunk-calibration}
 \begin{algorithmic}[1]
 \Require Lattice sizes $\Lambda_R = \{5, 7, 11, \ldots, 31\}$,
-  games per scale~$M$
+  games per scale $M \in \mathbb{N}$
 \Ensure Base measure
-  $\mu = \{(\hat{p}_c, \hat{\kappa}, \hat{\sigma})\}_N$
+  $\mu = \{\mathrm{NLR}(N),\; \mathrm{WR}(N)\}_{N \in \Lambda_R}$
 \For{$N \in \Lambda_R$}
+  \State $\text{wins}, \text{losses}, \text{draws} \gets 0, 0, 0$
   \For{$m = 1, \ldots, M$}
     \State Play $\textsc{DrunkGame}(N)$
       \Comment{Def.~\ref{def:drunk-game}: coin $+$ uniform}
-    \State Record first-closure density $d_m$,
-      scores $(s^B_m, s^W_m)$
+    \State Record outcome $(s^B_m, s^W_m) \in \mathbb{N}_0^2$;\;
+      update win/loss/draw counts
   \EndFor
-  \State $\hat{p}_c(N) \gets \mathrm{mean}(d_1, \ldots, d_M)$
-    \Comment{percolation threshold}
-  \State $\hat{\kappa}(N)
-    \gets \mathrm{median}(s^B - s^W)$
-    \Comment{fair komi}
-  \State $\hat{\sigma}(N)
-    \gets \mathrm{std}(\text{territory sizes})$
-    \Comment{score spread}
-  \State \textbf{verify}
+  \State $\mathrm{WR}(N) \gets \text{wins} / M$;\quad
+    $\mathrm{NLR}(N) \gets (\text{wins} + \text{draws}) / M$
+  \State \textbf{Check:}
     $\mathrm{NLR}_{\mathrm{drunk}}
     \approx 50\% \pm 1/\sqrt{M}$
-    \Comment{self-dual check}
+    \Comment{self-dual sanity check}
 \EndFor
 \State \Return $\mu$
 \end{algorithmic}
@@ -3208,11 +3346,11 @@ It is a theorem name:
 For each $N \in \Lambda_R$, the Drunk calibration
 (Algorithm~\ref{alg:drunk-calibration}) satisfies:
 \begin{enumerate}[label=(\alph*),nosep]
-\item $\hat{p}_c(N) \to p_c(N)$ at rate $O(1/\sqrt{M})$
-  (SLLN for i.i.d.\ Bernoulli site percolation).
-\item $\hat{\kappa}(N) \to 0$ at rate $O(1/\sqrt{M})$
-  (self-duality: $p = \tfrac{1}{2}$ forces
-  $\mathbb{E}[s^B - s^W] = 0$).
+\item $\mathrm{WR}(N) \to \tfrac{1}{2}$ and
+  $\mathrm{NLR}(N) \to \tfrac{1}{2}$
+  at rate $O(1/\sqrt{M})$
+  (SLLN for i.i.d.\ games; self-duality forces
+  $\mathbb{E}[s^B] = \mathbb{E}[s^W]$).
 \item The base measure $\mu$ is the null hypothesis:
   Queen win rate $> 50\%$ against~$\mu$ certifies
   that the pool has learned structure beyond random play.
@@ -3222,14 +3360,11 @@ For each $N \in \Lambda_R$, the Drunk calibration
 \begin{proof}[Proof sketch]
 Each Drunk game is i.i.d.\ (the coin flips and placements
 are independent across games).
-Part~(a): the first-closure density $d_m$ is a bounded
-random variable on $[0, 1]$; the SLLN gives
-$\hat{p}_c \to \mathbb{E}[d] = p_c$ at $O(1/\sqrt{M})$.
-Part~(b): by self-duality
+Part~(a): by self-duality
 (Definition~\ref{def:self-dual}),
-$\mathbb{E}[s^B] = \mathbb{E}[s^W]$ exactly, so the median of
-$s^B - s^W$ converges to~$0$.
-Part~(c): any policy~$\pi$ achieving win rate $> 50\%$
+$\mathbb{E}[s^B] = \mathbb{E}[s^W]$ exactly, so the
+win rate converges to $\tfrac{1}{2}$ at $O(1/\sqrt{M})$.
+Part~(b): any policy~$\pi$ achieving win rate $> 50\%$
 against the Drunk baseline $\mu$ must exploit
 board structure that pure randomness cannot---this
 is precisely the information content of~$\pi$.
@@ -3376,18 +3511,20 @@ the output is determined.
 \end{remark}
 
 \begin{algorithm}[ht]
-\caption{Queen's Gated Training (Phase~1)}\label{alg:queen}
+\caption{Queen's Gated Training (Phase~1)
+  \textup{[Replicator Flow on Expanding Lattice]}}\label{alg:queen}
 \begin{algorithmic}[1]
-\Require Lattice $\Lambda_R$, games per scale $\{n_N\}$,
-  evaluation budget $E$, base measure $\mu$
-  (Algorithm~\ref{alg:drunk-calibration})
-\Ensure Trained pool $\bar{w}$, training log, checkpoint map
+\Require Lattice $\Lambda_R$, games per scale $n_N \in \mathbb{N}$,
+  evaluation budget $E \in \mathbb{N}$, base measure $\mu$
+  (Algorithm~\ref{alg:drunk-calibration}),
+  temperature $\tau_{\mathrm{IR}} \in \mathbb{R}_{>0}$
+\Ensure Trained pool $\bar{w} \in [0,1]^k$, training log, checkpoint map
 \State Initialise pool: $\bar{w}_i \gets 1/k$ for
   $i = 1, \ldots, k$ \Comment{max-entropy prior}
 \For{$N \in \Lambda_R$ in increasing order}
   \For{$m = 1, \ldots, n_N$}
     \State Sample framework
-      $F \sim \softmax\!\bigl(\log \bar{w} / \tau\bigr)$
+      $F \sim \softmax\!\bigl(\log \bar{w} / \tau_{\mathrm{IR}}\bigr)$
       \Comment{Boltzmann}
     \State Play game against opponent at size $N$
       \Comment{MOPL pipeline}
@@ -3398,12 +3535,10 @@ the output is determined.
   \EndFor
   \State \textbf{Checkpoint:} play $E$ evaluation games at size $N$
   \State Compute $\mathrm{WR}(N)$, $\mathrm{NLR}(N)$
-  \State \textbf{Gate:} verify C1--C4:
-  \State \quad C1: $\min_i n_i > 0$ (pool alive)
-  \State \quad C2: $\min_i \bar{w}_i > \epsilon$ (mass gap)
-  \State \quad C3: $\mathrm{NLR}(N) = 100\%$ (Queen viable)
-  \State \quad C4: $|\hat{V}(N) - \mathrm{WR}(N)| < \delta$ (King agrees)
-  \State \textbf{if} any C1--C4 fails \textbf{then} \textbf{halt} \Comment{chain broken}
+  \State \textbf{Gate:} verify $\mathrm{NLR}(N) = 100\%$
+    \Comment{Queen viable at this scale}
+  \State \textbf{if} gate fails \textbf{then} retry up to $n_N$ extra games;
+    if still failing, continue with warning
 \EndFor
 \State \Return $\bar{w}$, training log, checkpoints
 \end{algorithmic}
@@ -4392,14 +4527,16 @@ maximise predicted not-lose rate.
 \end{proposition}
 
 \begin{algorithm}[ht]
-\caption{King's Predictive Control (Phase~2)}\label{alg:king}
+\caption{King's Predictive Control (Phase~2)
+  \textup{[Double Boltzmann Temperature Optimization]}}\label{alg:king}
 \begin{algorithmic}[1]
 \Require Pool state $\bar{w} \in [0,1]^k$, training log,
-  horizon $H$, learning rate $\eta$, steps $J$,
-  warm-start $\theta_0$ (optional)
+  horizon $H \in \mathbb{N}$, learning rate $\eta \in \mathbb{R}_{>0}$,
+  steps $J \in \mathbb{N}$,
+  warm-start $\theta_0 \in \mathbb{R}^2$ (optional)
 \Ensure Optimal temperatures
-  $(\tau_{\mathrm{UV}}^*, \tau_{\mathrm{IR}}^*)$,
-  predictions $\hat{V}$
+  $(\tau_{\mathrm{UV}}^*, \tau_{\mathrm{IR}}^*) \in \mathbb{R}_{>0}^2$,
+  predictions $\hat{V} \in \mathbb{R}^S$
 \State $M_H \gets$ outcome matrix from last $H$ games
   \Comment{$M_H \in \mathbb{R}^{S \times k}$}
 \State $\theta \gets \theta_0$ if warm-start,
@@ -4410,13 +4547,13 @@ maximise predicted not-lose rate.
     \quad $\tau_{\mathrm{UV}} \gets e^{\theta_{\mathrm{UV}}}$
   \State $\pi_f \gets
     \softmax\!\bigl(\log \bar{w} / \tau_{\mathrm{IR}}\bigr)$
-    \Comment{framework selection}
+    \Comment{$\in \Delta^{k-1}$}
   \State $\hat{V}(s) \gets M_H \, \pi_f$
     \quad for all scales $s$
     \Comment{Def.~\ref{def:smppi}}
   \State $\pi_s \gets
     \softmax\!\bigl(\hat{V} / \tau_{\mathrm{UV}}\bigr)$
-    \Comment{scale selection}
+    \Comment{$\in \Delta^{S-1}$}
   \State $\mathcal{L} \gets -\pi_s^\top \hat{V}$
     \Comment{Eq.~\ref{eq:controller-loss}}
   \State $\theta \gets \theta - \eta\,\nabla_\theta \mathcal{L}$
@@ -5041,6 +5178,1615 @@ without searching
 (\begin{CJK}{UTF8}{gbsn}不搜而视\end{CJK}).
 \end{remark}
 
+% ── §11.7: End-to-end learning via Drunk Walk ─────────────
+\subsection{End-to-end learning via Drunk Walk}\label{sec:e2e}
+
+The Drunk Walk (Algorithm~\ref{alg:drunk-walk}) is the
+\emph{only} end-to-end differentiable component in MOPL\@.
+The Queen evolves framework weights by running averages
+(evolutionary, no gradient).
+The King optimises two temperatures by gradient descent
+(Definition~\ref{def:two-temp}), but this is a
+$2$-parameter controller, not a policy.
+The Amortized King (Definition~\ref{def:amortized-king})
+distils the King into an MLP, but the MLP maps
+belief to temperature, not observation to action.
+
+Only the SVOT decomposition (Definition~\ref{def:svot})
+provides a loss function for a \emph{full policy}
+$\pi_\theta \colon \cS \to \Delta(\cA)$:
+
+\begin{definition}[SVOT policy gradient]\label{def:svot-pg}
+Let $\pi_\theta$ be a parametric policy (neural network)
+with $\theta \in \R^d$.
+The \emph{SVOT loss} is the free energy excess relative
+to the Drunk reference:
+\begin{equation}\label{eq:svot-loss}
+  \cL(\theta)
+  \;=\;
+  F(\pi_\theta) - F(\rho^*_N)
+  \;=\;
+  \underbrace{\bigl(\mathbb{E}_{\pi_\theta}[E]
+    - \mathbb{E}_{\rho^*}[E]\bigr)}_{\Delta E(\theta)}
+  \;+\;
+  \underbrace{\DKL(\pi_\theta \,\|\, \rho^*_N)}_{%
+    \text{entropy cost}}\,.
+\end{equation}
+The gradient decomposes as
+\[
+  \nabla_\theta \cL
+  \;=\;
+  \nabla_\theta \mathbb{E}_{\pi_\theta}[E]
+  \;+\;
+  \nabla_\theta \DKL(\pi_\theta \,\|\, \rho^*_N).
+\]
+The first term is the policy gradient (REINFORCE or
+pathwise estimator).
+The second is the entropy regularisation gradient.
+Both are computable by auto-differentiation
+through~$\pi_\theta$.
+\end{definition}
+
+\begin{proposition}[SVOT $=$ Soft Actor-Critic]%
+\label{prop:svot-sac}
+The SVOT loss~\eqref{eq:svot-loss} is the
+SAC objective~\cite{Haarnoja2018} with
+$\rho^*_N$ as the max-entropy reference and
+$\alpha = 1$ as the entropy coefficient:
+\[
+  J_{\mathrm{SAC}}(\pi)
+  \;=\;
+  \sum_t \mathbb{E}_{\pi}\bigl[r_t
+    + \alpha\, H\!\bigl(\pi(\cdot \mid s_t)\bigr)\bigr]
+  \;=\;
+  -\cL(\theta) + \mathrm{const}.
+\]
+The identification is:
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{SVOT (this paper)} &
+\textbf{SAC} &
+\textbf{Role} \\
+\midrule
+$\rho^*_N$ (Drunk Walk) &
+  Max-entropy reference &
+  Variational origin \\
+$\Delta E$ &
+  Expected return &
+  Reward signal \\
+$\DKL(\pi \| \rho^*)$ &
+  $-\alpha\, H(\pi)$ &
+  Entropy regularisation \\
+Temperature $\tau$ &
+  $\alpha$ &
+  Exploration--exploitation \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+The Drunk Walk
+(Algorithm~\ref{alg:drunk-walk})
+produces $\rho^*_N =
+\mathrm{Bernoulli}(\tfrac{1}{2})
+\otimes \mathrm{Uniform}(V \setminus O)$,
+the maximum-entropy policy on the Go state space.
+Substituting into~\eqref{eq:svot}:
+$F(\pi_\theta) = F(\rho^*_N) + \Delta E + \DKL$.
+Negating and adding the constant $F(\rho^*_N)$ gives
+$-\cL(\theta) = -\Delta E - \DKL + \mathrm{const}
+= J_{\mathrm{SAC}}$.
+\end{proof}
+
+\begin{remark}[Domain-agnostic extension:
+  from board to body]%
+\label{rem:domain-agnostic}
+\color{black!60}%
+The SVOT decomposition~\eqref{eq:svot} requires only:
+\begin{enumerate}[label=\textup{(\roman*)}, nosep]
+\item a state space $\cS$
+  (Go: $N \times N$ grid;
+   robotics: $\R^n$),
+\item an action space $\cA$
+  (Go: $N^2 + 1$;
+   robotics: $\R^m$),
+\item a reference measure $\rho^*$
+  (Go: Drunk Walk;
+   robotics: random actions),
+\item a scalar reward
+  $r : \cS \times \cA \to \R$
+  (Go: territory score;
+   robotics: task objective).
+\end{enumerate}
+Replacing the Go board with a physics simulator
+(e.g.\ MuJoCo) and the rule-based Thinker--Goer
+with a neural policy
+$\pi_\theta : \cS \to \cA$ gives end-to-end
+differentiable control:
+\[
+  \text{observation}
+  \;\xrightarrow{\;g_\phi\;}
+  \text{state}
+  \;\xrightarrow{\;\pi_\theta\;}
+  \text{action}
+  \;\xrightarrow{\;\text{dynamics}\;}
+  \text{reward},
+\]
+where $g_\phi$ is an optional encoder
+(CNN, ViT, or 3D Gaussian splatting for visual inputs).
+The gradient $\nabla_\theta \cL$ pulls back through
+the entire pipeline.
+
+\medskip\noindent
+The Drunk Walk is not a Go algorithm---it is the
+\emph{variational origin} for any sequential decision
+process.
+The board is a proof of concept.
+The loss function is the contribution.
+\end{remark}
+
+% ────────────────────────────────────────────────────────────
+% §11.8  Locomotion instantiation
+% ────────────────────────────────────────────────────────────
+
+\subsection{Instantiation: quadruped locomotion on the Euler--Lagrange equation}
+\label{sec:locomotion}
+
+The Euler--Lagrange equation is not an analogy for a game board.
+It \emph{is} the board.
+A physics simulator (MuJoCo, Brax, or a hand-written integrator)
+is a numerical solver of that equation,
+exactly as KataGo is a numerical player of the Go rules.
+The mathematics is the constrained EL system;
+everything else---time-stepping scheme, collision library,
+GPU backend---is implementation.
+
+This section instantiates every object from
+\S\ref{sec:e2e}
+on a concrete physical system:
+the Unitree Go2 quadruped robot.
+Every number below is extracted from the
+MuJoCo Menagerie model (\texttt{go2\_mjx.xml})
+and verified against the manufacturer's URDF.
+A reader who knows nothing about Go, pools, or MOPL
+should be able to read this section and
+understand the state, action, constraint, pool,
+reference measure, and loss---then recognise them
+as the \emph{same} objects that appeared on the $19\times 19$ board.
+
+%% ── Block 2: EL universe ──────────────────────────────────
+
+\begin{definition}[Euler--Lagrange universe]
+\label{def:el-universe}
+The \emph{EL universe} is the constrained
+Euler--Lagrange equation with contact:
+\begin{equation}\label{eq:el-contact}
+  M(q)\,\ddot{q}
+  + C(q,\dot{q})\,\dot{q}
+  + g(q)
+  \;=\;
+  B\,\tau
+  + J_c(q)^{\!\top}\lambda,
+\end{equation}
+where
+\begin{itemize}[nosep]
+\item $q \in \mathcal{Q}$ --- configuration
+      (generalised coordinates),
+\item $M(q) \succ 0$ --- mass--inertia matrix
+      (symmetric positive-definite, $\dim = n_q \times n_q$),
+\item $C(q,\dot{q})$ --- Coriolis and centrifugal terms,
+\item $g(q)$ --- gravitational generalised force,
+\item $B \in \R^{n_q \times m}$ --- actuation matrix
+      (selects which joints receive torque;
+       for a fully actuated limb $B$ is a rectangular selector),
+\item $\tau \in \R^{m}$ --- joint torques
+      (the \emph{only} quantity the agent controls),
+\item $J_c(q) \in \R^{n_c \times n_q}$ --- contact Jacobian
+      (maps generalised velocities to foot-frame velocities
+       at each active contact point),
+\item $\lambda \in \R^{n_c}$ --- contact impulses,
+      resolved by the complementarity condition below.
+\end{itemize}
+The contact law is:
+\begin{equation}\label{eq:contact-complementarity}
+  0 \leq \lambda \;\perp\; J_c\,\dot{q} \geq 0
+  \quad\text{(Signorini)},
+  \qquad
+  \norm{\lambda_t} \leq \mu\,\lambda_n
+  \quad\text{(Coulomb cone)},
+\end{equation}
+where $\lambda_n, \lambda_t$ are the normal and tangential
+components at each contact, and $\mu$ is the friction coefficient.
+
+\medskip\noindent\textbf{Key property.}\;
+Equation~\eqref{eq:el-contact} is a
+\emph{differential inclusion}, not an ODE,
+because the contact mode switches discretely:
+when a foot lifts off, the corresponding rows of $J_c$
+vanish; when a foot strikes down, new rows appear.
+The contact Jacobian $J_c$ changes rank at each
+mode transition.
+The set of active contacts at time $t$ partitions
+the dynamics into finitely many smooth ODE branches
+glued along switching surfaces.
+\end{definition}
+
+%% ── Block 3: Quadruped state--action ──────────────────────
+
+\begin{definition}[Quadruped state and action spaces]
+\label{def:quadruped-state}
+Instantiate Definition~\ref{def:el-universe}
+for the Unitree Go2 quadruped.
+All values are from the MuJoCo Menagerie model
+(\texttt{go2\_mjx.xml}).
+
+\medskip
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Symbol} & \textbf{Dim} & \textbf{Description}
+  & \textbf{Go2 value} \\
+\midrule
+$q$ & 18 & Configuration: $\mathrm{SE}(3) \times \R^{12}$
+  & 6 base + 12 joints \\
+$\dot{q}$ & 18 & Generalised velocity
+  & base twist + joint velocities \\
+$\tau$ & 12 & Joint torques
+  & 4 legs $\times$ 3 joints \\
+$m_{\mathrm{base}}$ & --- & Base mass
+  & 6.921\,kg \\
+$\ell_{\mathrm{thigh}}$ & --- & Thigh link length
+  & 0.213\,m \\
+$\ell_{\mathrm{calf}}$ & --- & Calf link length
+  & 0.213\,m \\
+$h_{\mathrm{stand}}$ & --- & Standing height (CoM)
+  & 0.312\,m \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{Joint limits per leg} (radians):
+ab/ad $\in [-0.863,\; 0.863]$,
+hip $\in [-1.047,\; 3.490]$,
+knee $\in [-2.697,\; {-0.837}]$.
+
+\smallskip\noindent
+\textbf{Torque limits} (Nm):
+$[23.7,\; 23.7,\; 35.55]$ for ab/ad, hip, knee respectively.
+
+\smallskip\noindent
+\textbf{Velocity limit}: $21.0$\,rad/s per joint.
+\textbf{Control rate}: 50\,Hz ($\Delta t = 0.02$\,s).
+
+\medskip\noindent
+\textbf{Observation} (what the agent receives at each step):
+\begin{equation}\label{eq:quadruped-obs}
+  x \;=\;
+  \bigl(\,
+    R,\; p,\; \omega,\; v,\;
+    \theta,\; \dot{\theta}
+  \,\bigr)
+  \;\in\; \R^{42},
+\end{equation}
+where
+$R \in \mathrm{SO}(3)$ flattened to $\R^9$,\;
+$p \in \R^3$ (CoM position),\;
+$\omega \in \R^3$ (angular velocity),\;
+$v \in \R^3$ (linear velocity),\;
+$\theta \in \R^{12}$ (joint angles),\;
+$\dot{\theta} \in \R^{12}$ (joint velocities).
+
+\medskip\noindent
+\textbf{Action} = torque:
+$u = \tau \in \R^{12}$,
+subject to $|\tau_i| \leq \bar{\tau}_i$
+for each joint $i$.
+
+\medskip\noindent
+The state is what the robot sees.
+The action is the only thing it can do.
+\end{definition}
+
+%% ── Block 4: Contact mode lattice ─────────────────────────
+
+\begin{definition}[Contact mode lattice]
+\label{def:contact-mode}
+Each foot is either in contact with the ground ($1$)
+or in the air ($0$).
+The \emph{contact mode} is
+\begin{equation}\label{eq:contact-mode}
+  c \;=\;
+  (c_{\mathrm{FL}},\, c_{\mathrm{FR}},\,
+   c_{\mathrm{RL}},\, c_{\mathrm{RR}})
+  \;\in\; \{0,1\}^4,
+  \qquad
+  |\cC| = 2^4 = 16.
+\end{equation}
+These are the pool frameworks
+(Definition~\ref{def:executor-assembling}).
+Not gaits---contact modes.
+
+\medskip
+\begin{center}
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{Mode $c$} & \textbf{Binary}
+  & \textbf{Active feet}
+  & \textbf{Example gait phase} \\
+\midrule
+$(1,1,1,1)$ & 1111 & All four & Standing \\
+$(1,0,0,1)$ & 1001 & FL + RR  & Trot phase A \\
+$(0,1,1,0)$ & 0110 & FR + RL  & Trot phase B \\
+$(1,1,0,0)$ & 1100 & Front pair & Bound phase A \\
+$(0,0,0,0)$ & 0000 & None     & Flight \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+A \emph{gait} is a temporal sequence of contact modes.
+Trot $= \ldots,\, c_A,\, c_B,\, c_A,\, c_B,\, \ldots$
+where $c_A = (1,0,0,1)$ and $c_B = (0,1,1,0)$.
+Gaits \emph{emerge} from the pool dynamics;
+the pool does not prescribe them.
+
+The agent never selects a contact mode.
+It outputs torques; the EL engine resolves contact;
+the mode \emph{emerges}.
+The empirical distribution over modes
+$\hat{p}(c) = T^{-1}\sum_{t} \mathbf{1}[c_t = c]$
+is a \emph{diagnostic statistic} of the policy,
+not a decision variable.
+It lives on $\Delta^{15}$ ($k = 16$ vertices),
+and its temporal structure---which modes follow which,
+at what frequency---is what we recognise post hoc as a gait.
+\end{definition}
+
+%% ── Block 5: Command space and Drunk Command ──────────────
+
+\begin{definition}[Command space]
+\label{def:command-space}
+The \emph{command} is the centre-of-mass (CoM) velocity:
+\begin{equation}\label{eq:command}
+  v_{\mathrm{cmd}}
+  \;=\;
+  (v_x,\, v_y,\, \omega_z)
+  \;\in\; \R^3.
+\end{equation}
+This is the \emph{only} legitimate command.
+Anything beyond CoM velocity
+(specific foot placement, hip angle)
+is either redundancy resolved by the contact mode
+selection, or undefined:
+the robot has 12 actuators but only 3 command
+dimensions---the 9-dimensional null space is
+the contact mode's job.
+\end{definition}
+
+\begin{definition}[Drunk Command (Markov kernel form)]
+\label{def:drunk-command}
+Let $o \in \cS$ be the agent's observation
+(proprioception, or proprioception + vision).
+The \emph{Drunk Command kernel} is
+\begin{equation}\label{eq:drunk-command-kernel}
+  \rho^*(\cdot \mid o)
+  \;=\;
+  \mathrm{Uniform}\!\bigl(\cR(o)\bigr),
+  \qquad
+  \cR(o) \subset \R^3,
+\end{equation}
+where $\cR(o)$ is the reachable command set
+\emph{conditioned on the current observation}
+(determined by the viability kernel
+at the observed state).
+Sample $v_{\mathrm{cmd}} \sim \rho^*(\cdot \mid o)$;
+apply for a random duration
+$T \sim \mathrm{Exp}(\lambda)$; then resample.
+
+\medskip\noindent
+\textbf{Blind case} (hard Riccati, proprioception only):\;
+$\cR(o) = \cR$ is constant.
+The kernel degenerates to the marginal
+$\mathrm{Uniform}(\cR)$.
+This is Definition~\ref{def:drunk-game}
+on a different substrate.
+
+\medskip\noindent
+\textbf{Sighted case} (soft Riccati, with vision):\;
+$\cR(o)$ contracts near obstacles
+(a robot facing a wall has smaller $\cR$
+than one on flat ground)
+and expands on open terrain.
+The kernel conditions the reference measure
+on what the robot sees---the soft Riccati upgrade
+costs nothing structurally
+(same algorithm, same loss,
+the observation $o$ simply carries more information).
+
+\medskip
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{Go} & \textbf{Locomotion} \\
+\midrule
+Strategy
+  & Where to place stone
+  & Which torques to apply \\
+Randomness
+  & $\mathrm{Uniform}(V \setminus O)$
+  & $\rho^*(\cdot \mid o)
+    = \mathrm{Uniform}\!\bigl(\cR(o)\bigr)$ \\
+Self-dual point
+  & $p = 1/2$ (fair coin)
+  & $v_{\mathrm{cmd}} = 0$ (stand still) \\
+Blind $\to$ sighted
+  & Text $\to$ image input
+  & Proprioception $\to$ vision \\
+Free energy preserved
+  & Territory topology
+  & Viability kernel \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{definition}
+
+%% ── Block 6: Viability constraint ─────────────────────────
+
+\begin{definition}[Viability constraint for locomotion]
+\label{def:viability-locomotion}
+The \emph{viable set} for locomotion is
+\begin{equation}\label{eq:viable-loco}
+  K_{\mathrm{loco}}
+  \;=\;
+  \bigl\{\,
+    x \in \cX \;:\;
+    h(x) \geq h_{\min},\;\;
+    \norm{R_{\mathrm{body}} - I}_F \leq \phi_{\max},\;\;
+    |\dot{\theta}_i| \leq \bar{v},\;\;
+    |\tau_i| \leq \bar{\tau}_i
+  \,\bigr\},
+\end{equation}
+where
+\begin{itemize}[nosep]
+\item $h(x) \geq h_{\min}$:
+      CoM height above ground (not fallen),
+\item $\norm{R_{\mathrm{body}} - I}_F \leq \phi_{\max}$:
+      body orientation within bounds (not flipped),
+\item $|\dot{\theta}_i| \leq \bar{v}$:
+      joint velocity limits ($\bar{v} = 21.0$\,rad/s),
+\item $|\tau_i| \leq \bar{\tau}_i$:
+      torque limits ($[23.7,\; 23.7,\; 35.55]$\,Nm).
+\end{itemize}
+The correspondence to Go:
+\[
+  \underbrace{\mathrm{NLR} \geq 1}_{\text{Go: not-lose}}
+  \quad\longleftrightarrow\quad
+  \underbrace{x \in K_{\mathrm{loco}}}_{\text{Robot: not-fall}}.
+\]
+The \emph{viability kernel}
+$\mathrm{Viab}(K_{\mathrm{loco}})$
+is the largest subset of $K_{\mathrm{loco}}$
+from which there exists a control law keeping
+$x(t) \in K_{\mathrm{loco}}$ for all $t \geq 0$.
+This is Proposition~\ref{prop:viability}
+instantiated for locomotion,
+with the King's Penny (Lemma~\ref{lem:kings-penny})
+providing the exit certificate.
+\end{definition}
+
+%% ── Block 7: MOPL--Locomotion isomorphism ─────────────────
+
+\begin{remark}[MOPL--Locomotion isomorphism]
+\label{rem:mopl-locomotion-iso}
+The following table extends
+Remark~\ref{rem:chess-iso}
+from bilevel optimisation to the full pipeline.
+Every row except the last is mathematics;
+only the last row mentions software.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}lp{4.8cm}p{5.8cm}@{}}
+\toprule
+\textbf{Layer}
+  & \textbf{Go (MOPL)}
+  & \textbf{Quadruped (this section)} \\
+\midrule
+Universe
+  & Go rules on $N \times N$ lattice
+  & EL equation~\eqref{eq:el-contact}:
+    $M\ddot{q} + C\dot{q} + g
+     = B\tau + J_c^{\!\top}\lambda$ \\[3pt]
+State
+  & Board position $s \in \{-1,0,1\}^{N^2}$
+  & $(R, p, \omega, v, \theta, \dot{\theta})
+    \in \R^{42}$ \\[3pt]
+Action
+  & Place stone at $v \in V \setminus O$
+  & Torque $\tau \in \R^{12}$,
+    $|\tau_i| \leq \bar{\tau}_i$ \\[3pt]
+Command
+  & ``Win the game'' (scalar)
+  & CoM skew
+    $(v_x, v_y, \omega_z) \in \R^3$ \\[3pt]
+Constraint
+  & $\mathrm{NLR} \geq 1$ (not lose)
+  & $x \in K_{\mathrm{loco}}$ (not fall) \\[3pt]
+Pool
+  & 5 strategic frameworks, $\Delta^4$
+  & 16 contact modes $\{0,1\}^4$,
+    $\Delta^{15}$ (emergent diagnostic) \\[3pt]
+Frameworks
+  & territorial, influence, \ldots
+  & $(1,1,1,1)$, $(1,0,0,1)$, \ldots \\[3pt]
+Gaits
+  & ---
+  & Emerge: temporal sequences
+    of contact modes \\[3pt]
+Perception
+  & Board is fully observed
+  & $g_\phi: o \to x \in \R^{42}$
+    (blind: identity; sighted: encoder) \\[3pt]
+Drunk ref.
+  & $\mathrm{Bernoulli}(1/2) \otimes
+    \mathrm{Uniform}(V \setminus O)$
+  & $\rho^*(\cdot \mid o)
+    = \mathrm{Uniform}\!\bigl(\cR(o)\bigr)$
+    (kernel) \\[3pt]
+Free space
+  & Free core $\cF \subseteq \mathrm{Viab}(K)$
+  & $\cF_{\mathrm{loco}}
+    \cong \mathrm{SE}(2) \times
+    \cF_{\mathrm{shape}}$ (standing) \\[3pt]
+Viability
+  & $\mathrm{Viab}(K) = \mathrm{Push}(\cF)$
+  & $\mathrm{Viab}(K_{\mathrm{loco}})
+    = \bigcup_\Gamma
+    \mathrm{Orbit}_\Gamma(\cF_{\mathrm{loco}})$ \\[3pt]
+Holonomy
+  & ---
+  & $\mathrm{Hol}(\gamma) \in \mathrm{SE}(3)$:
+    net displacement per gait cycle \\[3pt]
+SVOT loss
+  & $\cL = \Delta E
+    + \DKL(\pi \| \rho^*)$
+  & Same, $\rho^* = $ Drunk Command kernel \\[3pt]
+Gradient
+  & $\nabla_\theta$ through policy
+  & $\nabla_{(\phi,\theta)}$ through
+    encoder + policy; not through
+    $\mathrm{Step}$ \\[3pt]
+Scale lattice
+  & $\Lambda_R = \{5,7,\ldots,31\}$
+    board sizes
+  & Terrain difficulty / command range /
+    duration \\[3pt]
+\midrule
+Simulator
+  & KataGo
+  & MuJoCo / Brax / any EL integrator \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+The simulator row is the \emph{only} row that mentions
+software.
+Every other row is mathematics.
+\end{remark}
+
+%% ── Flow diagram ──────────────────────────────────────────
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  >=Stealth,
+  node distance=1.6cm and 1.8cm,
+  layer/.style={
+    draw=none, fill=#1, rounded corners=3pt,
+    minimum height=1.0cm, minimum width=2.2cm,
+    align=center, font=\small},
+  grad/.style={->, thick, blue!70!black, dashed},
+  flow/.style={->, thick, black},
+  nogo/.style={->, thick, red!60!black,
+    decorate, decoration={zigzag, amplitude=1pt,
+    segment length=4pt}},
+  lbl/.style={font=\footnotesize\bfseries},
+]
+% ── Column anchors ──
+% col0: layer labels, col1: input, col2: NN box,
+% col3: output, col4: feedback margin
+
+% ── Layer 1: Perception ──
+\node[lbl, green!50!black] (L1) {Layer 1};
+\node[layer=green!12, right=1.0cm of L1] (sensor)
+  {Sensor\\[-2pt]
+  {\scriptsize proprioception / camera}};
+\node[layer=green!12, right=of sensor] (encoder)
+  {$g_\phi$\\[-2pt] {\scriptsize encoder (NN)}};
+\node[right=1.0cm of encoder, font=\small] (state)
+  {$x_t \in \R^{42}$};
+
+% ── Layer 2: Policy ──
+\node[lbl, blue!50!black,
+  below=2.0cm of L1] (L2) {Layer 2};
+\node[font=\scriptsize, text=black!60, align=center,
+  right=0.3cm of L2] (drunk)
+  {$\rho^*(\cdot \mid o)$\\[-1pt]Drunk kernel};
+\node[font=\small, right=0.4cm of drunk] (cmd)
+  {$v_{\mathrm{cmd}}$};
+\node[layer=blue!12,
+  right=0.6cm of cmd] (policy)
+  {$\pi_\theta$\\[-2pt] {\scriptsize policy (NN)}};
+\node[right=1.0cm of policy, font=\small] (torque)
+  {$u_t \in \R^{12}$};
+
+% ── Layer 3: Physics ──
+\node[lbl, red!50!black,
+  below=2.0cm of L2] (L3) {Layer 3};
+\node[layer=red!12,
+  below=2.0cm of policy] (engine)
+  {$\mathrm{Step}$\\[-2pt]
+  {\scriptsize EL engine (black box)}};
+\node[right=1.0cm of engine, font=\small] (next)
+  {$x_{t+1}$};
+\node[below=0.5cm of engine, font=\scriptsize,
+  text=black!60] (contact)
+  {$c_t \in \{0,1\}^4$ (emergent)};
+
+% ── Forward arrows ──
+\draw[flow] (sensor) -- (encoder);
+\draw[flow] (encoder) -- (state);
+\draw[flow] (state.south) -- ++(0,-0.55)
+  -| (policy.north);
+\draw[flow] (drunk) -- (cmd);
+\draw[flow] (cmd) -- (policy);
+\draw[flow] (policy) -- (torque);
+\draw[flow] (torque.south) -- ++(0,-0.55)
+  -| (engine.north);
+\draw[flow] (engine) -- (next);
+\draw[flow] (engine) -- (contact);
+
+% ── State → Step (x_t also feeds physics) ──
+\coordinate (stR) at ($(state.east)+(0.3,0)$);
+\coordinate (engR) at ($(engine.east)+(0.3,0)$);
+\draw[flow, gray!50] (state.east) -- (stR)
+  -- (stR |- engR) -- (engine.east);
+
+% ── Feedback loop (raised + fold-down into sensor) ──
+\coordinate (fbR) at ($(next.east)+(0.6,0)$);
+\coordinate (fbTop) at ($(sensor.north)+(0,0.6)$);
+\draw[flow, gray!50] (next.east) -- (fbR)
+  -- (fbR |- fbTop) -- (fbTop) -- (sensor.north)
+  node[font=\scriptsize, gray, pos=0.35, above=1pt]
+  {next step};
+
+% ── Gradient arrows ──
+\draw[grad] ([yshift=-2pt]state.south west)
+  -- ([yshift=2pt]encoder.north east)
+  node[font=\scriptsize, blue!70!black,
+    pos=0.5, left=1pt] {$\nabla_\phi$};
+\draw[grad] ([yshift=-2pt]torque.south west)
+  -- ([yshift=2pt]policy.north east)
+  node[font=\scriptsize, blue!70!black,
+    pos=0.5, left=1pt] {$\nabla_\theta$};
+\draw[nogo] ([yshift=-2pt]next.south west)
+  -- ([yshift=2pt]engine.north east)
+  node[font=\scriptsize, red!60!black,
+    pos=0.5, left=1pt] {no $\nabla$};
+\end{tikzpicture}
+
+\caption{Three-layer pipeline of
+  Algorithm~\ref{alg:svot-locomotion}.
+  Blue dashed arrows: gradient flows
+  ($\nabla_\phi$ through encoder,
+   $\nabla_\theta$ through policy).
+  Red zigzag: no gradient through the EL engine.
+  The contact mode $c_t$ is an \emph{output}
+  of Layer~3 (emergent), not an input
+  to Layer~2.
+  Upgrading from blind to sighted
+  changes only Layer~1
+  (identity $\to$ CNN/ViT);
+  Layers~2 and~3 are unchanged.}
+\label{fig:locomotion-pipeline}
+\end{figure}
+
+%% ── Block 8: Model-free = modelling the free ──────────────
+
+\begin{remark}[Model-free = modelling the free]
+\label{rem:model-free-locomotion}
+The agent does \emph{not} know
+$M(q)$, $C(q,\dot{q})$, $g(q)$,
+$J_c(q)$, $\mu$, or $\lambda$.
+It sees only:
+\[
+  x_t
+  \;\xrightarrow{\;u_t\;}
+  x_{t+1}.
+\]
+One state, one action, one next state.
+
+What it learns:
+the viability kernel
+$\mathrm{Viab}(K_{\mathrm{loco}})$---the set of states
+from which not-fall is achievable.
+This \emph{is} the free core $\cF_{\mathrm{loco}}$
+of the Freedom Theorem
+(Definition~\ref{def:free-space-locomotion}
+makes this precise:
+$\cF_{\mathrm{loco}}$ is the standing equilibrium
+manifold from which all viable behaviours
+are reachable).
+
+``Model-free'' means the agent does not model
+$M$, $C$, $g$ (the ``model'').
+It models $\cF$ (the ``free'').
+This is not a pun---it is the content of
+Remark~\ref{rem:model-free}.
+
+\medskip\noindent
+\textbf{Why time-varying cost is forced.}\;
+The reachable command set $\cR(t,x)$ depends on the
+current state.
+A robot about to fall has a smaller $\cR$ than one
+standing upright.
+The cost function must therefore be state-dependent,
+hence time-varying.
+This is not a design choice---it is structurally forced
+by the viability constraint,
+exactly as the King's Penny
+(Lemma~\ref{lem:kings-penny})
+forces state-dependent discounting in Go.
+\end{remark}
+
+%% ── Block 9: Concrete algorithm ───────────────────────────
+
+\begin{algorithm}[H]
+\caption{Drunk Walk on the Euler--Lagrange equation
+  \textup{[Model-free locomotion via SVOT--SAC
+  (Proposition~\ref{prop:svot-sac});
+  cf.\ Algorithm~\ref{alg:drunk-walk} for Go]}}%
+\label{alg:svot-locomotion}
+\small
+\begin{algorithmic}[1]
+\Require EL engine $\mathrm{Step}: (x, u) \mapsto x'$
+  \Comment{black box, no $\nabla$ (Remark~\ref{rem:el-engine})}
+\Require Perception $g_\phi: o \mapsto x \in \R^{42}$;\;
+  Go2 limits $(\bar\tau, \bar v, h_{\min}, \phi_{\max})$
+  \Comment{Def.~\ref{def:quadruped-state}}
+\Require Drunk kernel
+  $\rho^*(\cdot \mid o)
+    = \mathrm{Uniform}\!\bigl(\cR(o)\bigr)$
+  \Comment{Def.~\ref{def:drunk-command}}
+\Require $\alpha$ (temperature),
+  $\eta$ (learning rate),
+  $\gamma$ (discount),
+  $\lambda$ (command rate)
+\Ensure $\pi_\theta : \R^{42} \times \R^3 \to \R^{12}$,\;
+  $g_\phi$,\;
+  $Q_\psi : \R^{42} \times \R^{12} \to \R$
+\Statex
+\State Init $\pi_\theta, g_\phi,
+  Q_\psi, \bar Q_{\bar\psi}
+  \gets \text{random}$;\;
+  $\cB \gets \emptyset$
+\For{episode $= 1, 2, \ldots$}
+  \State $x_0 \in \cF_{\mathrm{loco}}$
+    \Comment{reset to free space
+      (Def.~\ref{def:free-space-locomotion})}
+  \State \textsc{Whether}:\;
+    $T \sim \mathrm{Exp}(\lambda)$;\quad
+    \textsc{Where}:\;
+    $v_{\mathrm{cmd}} \sim \rho^*(\cdot \mid x_0)$
+    \Comment{drunk picks direction + duration}
+  \For{$t = 0, 1, \ldots$}
+    \Statex
+    \Comment{\textbf{Layer 1}: perception
+      ($\nabla_\phi$ flows)}
+    \State $o_t \gets \mathrm{sensor}()$;\quad
+      $x_t \gets g_\phi(o_t) \in \R^{42}$
+      \Comment{Eq.~\eqref{eq:quadruped-obs}}
+    \Statex
+    \Comment{\textbf{Layer 2}: policy
+      ($\nabla_\theta$ flows)}
+    \State $u_t \sim
+      \pi_\theta(\cdot \mid x_t, v_{\mathrm{cmd}})$;\quad
+      $u_t \gets \mathrm{clip}(u_t, {-\bar\tau}, \bar\tau)$
+      \Comment{truncated $t_\nu$ (Def.~\ref{def:student-t-policy})}
+    \Statex
+    \Comment{\textbf{Layer 3}: \textsc{Closure}
+      (no gradient---black box)}
+    \State $x_{t+1} \gets \mathrm{Step}(x_t, u_t)$
+      \Comment{EL engine: Eq.~\eqref{eq:el-contact}}
+    \State $c_t \gets
+      (\mathbf{1}[z_{\mathrm{foot},i} \leq 0])_{i=1}^4$
+      \Comment{contact mode: emergent diagnostic}
+    \Statex
+    \Comment{Reward: track Drunk Command}
+    \State $r_t \gets
+        -W_v \norm{v_{\mathrm{CoM}} - v_{\mathrm{cmd}}}^2
+        -W_h (z{-}h_{\mathrm{ref}})^2
+        -W_R \norm{R_{\mathrm{body}}{-}I}_F^2
+        -W_u \norm{u_t}^2$
+    \State $d_t \gets
+      \mathbf{1}[x_{t+1} \notin K_{\mathrm{loco}}]$;\;
+      store $(o_t, u_t, r_t, o_{t+1}, d_t) \to \cB$;\;
+      \textbf{if} $d_t{=}1$ \textbf{break}
+      \Comment{fell $\Rightarrow$ done}
+    \Statex
+    \Comment{\textsc{Whether} $\times$ \textsc{Where}:
+      resample?}
+    \If{$t \cdot \Delta t > T$}
+      \State $v_{\mathrm{cmd}}
+        \sim \rho^*(\cdot \mid x_t)$;\;
+        $T \sim \mathrm{Exp}(\lambda)$
+        \Comment{drunk changes direction}
+    \EndIf
+    \Statex
+    \Comment{Learn: SAC
+      (Prop.~\ref{prop:svot-sac})}
+    \State Sample $(o, u, r, o', d) \sim \cB$;\quad
+      $\tilde u' \sim \pi_\theta(\cdot \mid
+        g_\phi(o'), v_{\mathrm{cmd}})$
+    \State $y \gets r + \gamma(1{-}d)\bigl[
+      \bar Q_{\bar\psi}(g_\phi(o'), \tilde u')
+      - \alpha \log \pi_\theta(\tilde u' \mid
+        g_\phi(o'), v_{\mathrm{cmd}})\bigr]$
+      \Comment{TD target}
+    \State \textbf{Critic:}\;
+      $\psi \gets \psi
+        - \eta\,\nabla_\psi \tfrac12
+          \norm{Q_\psi(g_\phi(o), u) - y}^2$
+      \Comment{$\Delta E$ term of SVOT}
+    \State \textbf{Actor + Encoder:}\;
+      $(\theta,\phi) \gets (\theta,\phi)
+        - \eta\,\nabla_{(\theta,\phi)}\bigl[
+          \alpha\log\pi_\theta(\tilde u \mid
+            g_\phi(o), v_{\mathrm{cmd}})
+          - Q_\psi(g_\phi(o), \tilde u)\bigr]$
+      \Comment{$\DKL$ term}
+    \State $\bar\psi \gets
+      (1{-}\rho)\bar\psi + \rho\psi$
+      \Comment{Polyak}
+  \EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}[What the EL engine does and does not provide]
+\label{rem:el-engine}
+Line~7 of Algorithm~\ref{alg:svot-locomotion}
+is the \emph{only} place the EL engine appears.
+It computes
+\[
+  x_{t+1}
+  \;=\;
+  x_t
+  + \Delta t \cdot f(x_t, u_t, \lambda_t),
+\]
+where $f$ encodes
+$M(q)^{-1}\bigl[B\tau + J_c^\top\lambda - C\dot{q} - g\bigr]$
+and $\lambda_t$ is resolved internally
+(Delassus QP, barrier penalty, or any other contact solver).
+The agent never sees $M$, $C$, $g$, $J_c$, or $\lambda$.
+
+\medskip\noindent
+Concrete engines that solve Eq.~\eqref{eq:el-contact}:
+
+\smallskip
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Engine} & \textbf{Contact solver}
+  & \textbf{Differentiable?}
+  & \textbf{Backend} \\
+\midrule
+MuJoCo~2.x & Newton + PGS & No  & C \\
+MJX        & Barrier + scan & Yes & JAX / XLA \\
+Brax       & Spring--damper & Yes & JAX / XLA \\
+DFD6 (this paper) & $\kappa$-barrier + Delassus
+  & Yes & JAX \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip\noindent
+All four solve the same equation.
+Choosing between them is choosing a numerical method,
+not changing the mathematics.
+The algorithm is identical in all cases---only the
+$\mathrm{Step}$ function pointer changes.
+\end{remark}
+
+\begin{remark}[Where the gradient flows]
+\label{rem:gradient-flow}
+Algorithm~\ref{alg:svot-locomotion} has three layers.
+The gradient flows through the first two and
+\emph{stops} at the third:
+\[
+  \underbrace{o \;\xrightarrow{\;g_\phi\;}\; x}_{\text{%
+    perception (NN)}}
+  \;\xrightarrow{\;\pi_\theta\;}
+  \underbrace{\tau}_{\text{policy (NN)}}
+  \;\xrightarrow{\;\mathrm{Step}\;}
+  \underbrace{x'}_{\text{physics (black box)}}.
+\]
+\begin{enumerate}[nosep]
+\item \textbf{Perception} $g_\phi$:\;
+  raw sensor $\to$ state $x \in \R^{42}$
+  (or richer with vision).
+  Differentiable.
+  Gradient $\nabla_\phi$ flows here.
+\item \textbf{Policy} $\pi_\theta$:\;
+  state $\to$ torque $\tau \in \R^{12}$.
+  Differentiable.
+  Gradient $\nabla_\theta$ flows here.
+\item \textbf{Physics} $\mathrm{Step}$:\;
+  torque $\to$ next state.
+  Black box.
+  SAC does \emph{not} differentiate through the EL engine.
+  Contact modes are \emph{output} of this layer,
+  not input to the policy.
+\end{enumerate}
+``Model-free'' (Remark~\ref{rem:model-free-locomotion})
+means: no gradient through layer~3.
+The pullback is through the neural network---perception
+and policy---not through contact dynamics.
+This is why the engine table in
+Remark~\ref{rem:el-engine}
+lists both differentiable (MJX, Brax, DFD6)
+and non-differentiable (MuJoCo~2.x) engines:
+\emph{SAC does not care},
+because it never asks for $\nabla_{\mathrm{Step}}$.
+
+\medskip\noindent
+The sighted case
+(Definition~\ref{def:drunk-command}, soft Riccati)
+adds a vision encoder to layer~1.
+The gradient $\nabla_\phi$ now also flows through
+the encoder---but still not through the physics.
+The upgrade from blind to sighted is purely
+a change in the perception layer.
+\end{remark}
+
+%% ── Block 9b: Student-t torque policy ────────────────────
+
+\begin{definition}[Truncated Student-$t$ torque policy]
+\label{def:student-t-policy}
+The policy
+$\pi_\theta(\tau \mid x, v_{\mathrm{cmd}})$
+in Algorithm~\ref{alg:svot-locomotion}
+is a product of independent truncated
+Student-$t$ distributions on
+$[-\bar\tau, \bar\tau]^{12}$.
+The network $f_\theta$ outputs three heads:
+\begin{equation}\label{eq:policy-heads}
+  \bigl(\mu,\; \log\sigma,\; \log\nu\bigr)
+  \;=\;
+  f_\theta(x, v_{\mathrm{cmd}})
+  \;\in\;
+  \R^{12} \times \R^{12} \times \R,
+\end{equation}
+giving $25$ scalars:
+$12$ means, $12$ log-scales,
+and $1$ shared log-degrees-of-freedom.
+The density is
+\begin{equation}\label{eq:student-t-policy}
+  \pi_\theta(\tau \mid x, v_{\mathrm{cmd}})
+  \;=\;
+  \prod_{i=1}^{12}
+  \frac{t_{\nu}(\tau_i;\, \mu_i, \sigma_i)}
+       {Z_i(\mu_i, \sigma_i, \nu)},
+  \qquad
+  Z_i
+  \;\coloneqq\;
+  F_{\nu}\!\bigl(\bar\tau_i;\, \mu_i, \sigma_i\bigr)
+  - F_{\nu}\!\bigl(-\bar\tau_i;\, \mu_i, \sigma_i\bigr),
+\end{equation}
+where $t_\nu$ is the univariate Student-$t$ density
+with $\nu > 0$ degrees of freedom,
+\begin{equation}\label{eq:student-t-density}
+  t_\nu(z;\, \mu, \sigma)
+  \;=\;
+  \frac{\Gamma\!\bigl(\tfrac{\nu+1}{2}\bigr)}
+       {\Gamma\!\bigl(\tfrac{\nu}{2}\bigr)\,
+        \sigma\sqrt{\nu\pi}}
+  \biggl(
+    1 + \frac{(z - \mu)^2}{\nu\,\sigma^2}
+  \biggr)^{\!-(\nu+1)/2}\!,
+\end{equation}
+$F_\nu$ is the corresponding CDF,
+and $\Gamma$ is the gamma function.
+The log-probability used in the SAC actor update
+(Algorithm~\ref{alg:svot-locomotion}, line~14) is
+\begin{equation}\label{eq:log-pi-student}
+  \log\pi_\theta(\tau \mid x, v_{\mathrm{cmd}})
+  \;=\;
+  \sum_{i=1}^{12}
+  \biggl[
+    \log t_\nu(\tau_i;\, \mu_i, \sigma_i)
+    - \log Z_i
+  \biggr],
+\end{equation}
+which is differentiable in $(\mu, \sigma, \nu)$,
+hence in $(\theta, \phi)$ through
+Eq.~\eqref{eq:policy-heads}.
+\end{definition}
+
+\begin{remark}[Why Student-$t$: contact modes force heavy tails]
+\label{rem:student-t-forced}
+The Student-$t$ family in
+Definition~\ref{def:student-t-policy}
+is not a design preference---it is forced
+by the contact structure.
+
+\medskip\noindent
+\textbf{The argument.}\;
+Each contact mode
+$c \in \{0,1\}^4$
+(Definition~\ref{def:contact-mode})
+gives a different local dynamics,
+hence a different local Hessian
+$\nabla^2_\tau Q(x, \tau; c)$.
+The Boltzmann optimal policy
+$\pi^*(\tau \mid x)
+  \propto \exp\!\bigl(Q(x,\tau)/\alpha\bigr)$
+is therefore a \emph{Gaussian mixture}:
+near-Gaussian within each contact mode
+(locally quadratic $Q$),
+with mode weights
+$w_c(x) \propto
+  \int \exp(Q_c / \alpha)\,d\tau$.
+A scale mixture of Gaussians
+has Student-$t$ marginals---this is the
+classical representation theorem
+($\sigma^2 \sim
+  \mathrm{Inv}\text{-}\chi^2(\nu, s^2)$,\;
+$\tau \mid \sigma \sim \mathcal{N}(\mu, \sigma^2)$\;
+$\Rightarrow$\;
+$\tau \sim t_\nu(\mu, s)$).
+The Student-$t$ is therefore the
+natural single-family approximation
+to the true multi-modal optimum,
+with $\nu$ controlling
+the departure from Gaussianity.
+
+\medskip\noindent
+\textbf{Interpretation of $\nu_\theta(x)$.}\;
+The learned degrees of freedom
+$\nu_\theta(x) = \exp\!\bigl([\log\nu]\bigr)$
+tracks the effective number of
+active contact modes at state $x$:
+
+\smallskip
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Regime} & $\boldsymbol{\nu}$
+  & \textbf{Policy shape} \\
+\midrule
+Standing $(c = 1111)$, one mode
+  & $\to \infty$ & Gaussian (peaked) \\
+Trotting, two alternating modes
+  & $\approx 2$--$5$ & Moderate tails \\
+Bounding / flight, many transitions
+  & $\approx 1$--$2$ & Heavy tails (exploratory) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip\noindent
+A squashed Gaussian
+($\nu = \infty$, $\tanh$ output)
+is the standard SAC choice
+and is correct for quasi-static tasks
+where a single contact mode dominates.
+For dynamic locomotion with frequent mode
+transitions, the finite-$\nu$ Student-$t$
+captures the structural multi-modality
+in a single differentiable family.
+
+\medskip\noindent
+\textbf{Truncation vs.\ squashing.}\;
+Standard SAC uses
+$u = \bar\tau \tanh(z)$,
+requiring a Jacobian correction
+$\log\lvert\det(d\tanh/dz)\rvert$
+in the entropy term.
+The truncated Student-$t$
+(Eq.~\eqref{eq:student-t-policy})
+enforces $|\tau_i| \leq \bar\tau_i$
+via the normaliser $Z_i$---no
+Jacobian correction, exact bounds.
+\end{remark}
+
+%% ── Block 10: Free space, holonomy, theorem ───────────────
+
+% Override definition background: light blue for the free-space pair
+\tcolorboxenvironment{definition}{
+  enhanced, breakable, sharp corners,
+  colback=blue!8!white, colframe=blue!8!white,
+  borderline west={2pt}{0pt}{specOrange},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
+}
+
+\begin{definition}[Free space for locomotion --- geometric structure]
+\label{def:free-space-locomotion}
+The \emph{free space} is not a single object
+but a four-level structure.
+Each level is forced by the one below it.
+This definition gives Level~0 and Level~1
+(the geometry);
+Definition~\ref{def:free-space-analytic} gives
+Level~2 and Level~3 (the analysis).
+
+\medskip\noindent
+\textbf{Level~0: Configuration space.}\;
+$\mathcal{Q} = \mathrm{SE}(3) \times \mathcal{Q}_{\mathrm{shape}}$,
+where $\mathcal{Q}_{\mathrm{shape}} \subset \R^{12}$
+is the joint-angle space (bounded by joint limits).
+Write $q = (g, \theta)$ with
+$g \in \mathrm{SE}(3)$ (body pose)
+and $\theta \in \mathcal{Q}_{\mathrm{shape}}$ (joint angles).
+The state space is the tangent bundle
+$T\mathcal{Q}$, with $\dim T\mathcal{Q} = 36$.
+
+\medskip\noindent
+\textbf{Level~1: Manifold $\cF_{\mathrm{loco}}$.}\;
+The free space is the equilibrium submanifold
+of the all-contact mode:
+\begin{equation}\label{eq:free-space}
+  \cF_{\mathrm{loco}}
+  \;=\;
+  \bigl\{\,
+    x = (g,\, \theta,\, 0,\, 0)
+    \;\in\; T\mathcal{Q}
+    \;:\;
+    c = (1,1,1,1),\;\;
+    g(q) = B\tau_{\mathrm{static}}
+      + J_c(q)^{\!\top}\lambda_{\mathrm{static}},\;\;
+    x \in K_{\mathrm{loco}}
+  \,\bigr\},
+\end{equation}
+where $\tau_{\mathrm{static}}, \lambda_{\mathrm{static}}$
+solve the static equilibrium
+(zero velocity, zero acceleration,
+all four feet on the ground).
+
+\emph{Type:}\;
+$\cF_{\mathrm{loco}}$ is a \textbf{compact smooth
+manifold with boundary},
+not a Hilbert space,
+not an infinite-dimensional object.
+It is finite-dimensional:
+$\dim \cF_{\mathrm{loco}} \leq \dim \mathcal{Q} = 18$.
+
+\emph{Symmetry:}\;
+$\mathrm{SE}(2)$ acts freely on $\cF_{\mathrm{loco}}$
+(translate and rotate the robot horizontally
+without changing the shape).
+Given $\theta$, the foot positions fix $g$
+up to $(x, y, \psi)$.
+Thus
+\begin{equation}\label{eq:free-space-decomp}
+  \cF_{\mathrm{loco}}
+  \;\cong\;
+  \mathrm{SE}(2) \times \cF_{\mathrm{shape}},
+\end{equation}
+where
+$\cF_{\mathrm{shape}} \subset \mathcal{Q}_{\mathrm{shape}}$
+is the set of joint angles admitting static balance
+(CoM over the support polygon,
+torques within limits).
+
+\emph{Boundary:}\;
+$\partial \cF_{\mathrm{loco}}$ is where
+constraint inequalities become active---joint limits,
+torque-limit saturation,
+or CoM on the edge of the support polygon.
+The interior is smooth.
+The boundary is piecewise smooth
+(corners where two constraints meet).
+\end{definition}
+
+\begin{definition}[Free space for locomotion --- analytic structure]
+\label{def:free-space-analytic}
+Continuing the four-level structure
+of Definition~\ref{def:free-space-locomotion}.
+
+\medskip\noindent
+\textbf{Level~2: Viable control bundle.}\;
+At each state $x \in \cF_{\mathrm{loco}}$,
+the set of controls that keep the robot viable
+is
+\begin{equation}\label{eq:viable-controls}
+  U(x)
+  \;=\;
+  \bigl\{\,
+    u \in \R^{12}
+    \;:\;
+    \mathrm{Step}(x, u) \in \mathrm{Viab}(K_{\mathrm{loco}})
+  \,\bigr\}
+  \;\subset\; \R^{12}.
+\end{equation}
+The \emph{viable control bundle} is
+\[
+  \cE
+  \;=\;
+  \bigl\{\,
+    (x, u) \;:\;
+    x \in \cF_{\mathrm{loco}},\;
+    u \in U(x)
+  \,\bigr\}
+  \;\xrightarrow{\;\mathrm{pr}_1\;}\;
+  \cF_{\mathrm{loco}}.
+\]
+A policy $\pi : \cF_{\mathrm{loco}} \to \R^{12}$
+is a \emph{section} of this bundle:
+$\pi(x) \in U(x)$ for all $x$.
+Viable policies are exactly the sections of $\cE$.
+
+\medskip\noindent
+\textbf{Level~3: Policy Hilbert space.}\;
+The Drunk Command kernel
+(Definition~\ref{def:drunk-command})
+induces a reference measure $\rho^*$
+on $\cF_{\mathrm{loco}}$.
+The policy space is
+\begin{equation}\label{eq:policy-hilbert}
+  \cH_{\mathrm{loco}}
+  \;=\;
+  L^2\!\bigl(\cF_{\mathrm{loco}},\, \rho^*;\;
+    \R^{12}\bigr),
+  \qquad
+  \ip{\pi}{\pi'}
+  \;=\;
+  \int_{\cF_{\mathrm{loco}}}
+    \pi(x)^\top \pi'(x)
+  \;\, d\rho^*(x).
+\end{equation}
+\emph{Type:}\;
+$\cH_{\mathrm{loco}}$ \textbf{is} a
+(separable, infinite-dimensional) Hilbert space.
+The SVOT loss~\eqref{eq:svot-loss}
+is a functional $\cL : \cH_{\mathrm{loco}} \to \R$,
+and SAC is a stochastic gradient flow in
+$\cH_{\mathrm{loco}}$.
+Neural network parametrisation
+$\pi_\theta \in \cH_{\mathrm{loco}}$
+restricts this flow to a finite-dimensional
+submanifold $\Theta \hookrightarrow \cH_{\mathrm{loco}}$.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{Level} & \textbf{Object}
+  & \textbf{Type}
+  & \textbf{Dim} \\
+\midrule
+0 & $T\mathcal{Q}$ (state space)
+  & Smooth manifold
+  & 36 \\
+1 & $\cF_{\mathrm{loco}}$ (free space)
+  & Compact manifold with boundary
+  & $\leq 18$ \\
+2 & $\cE$ (viable control bundle)
+  & Fiber bundle over $\cF_{\mathrm{loco}}$
+  & $\leq 30$ \\
+3 & $\cH_{\mathrm{loco}}$ (policy space)
+  & Separable Hilbert space
+  & $\infty$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{What ``free'' means at each level.}\;
+Level~1 is the free core $\cF$ of the Freedom Theorem:
+the minimal set from which
+$\mathrm{Viab}(K_{\mathrm{loco}})
+  = \mathrm{Push}(\cF_{\mathrm{loco}})$.
+Level~2 is the set of viable actions:
+$U(x) \neq \emptyset$
+for all $x \in \cF_{\mathrm{loco}}$
+(that is what ``free'' means---freedom to act).
+Level~3 is where learning happens:
+the SVOT gradient flow in $\cH_{\mathrm{loco}}$
+finds the optimal section of $\cE$.
+
+Standing is to locomotion what territory is to Go.
+The free space is not the standing pose---it is
+the four-level structure that makes standing
+\emph{generative}:
+every viable behaviour is reachable from it.
+
+\medskip\noindent
+\textbf{Well-posedness.}\;
+The four levels are well-posed:
+$\cF_{\mathrm{loco}} \neq \emptyset$
+(the standing pose is a witness),
+$\cF_{\mathrm{loco}}$ is compact
+(zero velocity + joint limits + closed constraints),
+its interior is a smooth manifold
+(implicit function theorem),
+and
+$\cH_{\mathrm{loco}}
+  = L^2(\cF_{\mathrm{loco}}, \rho^*;\, \R^{12})$
+is a separable Hilbert space
+(compact base, finite Borel measure).
+See Proposition~\ref{prop:free-space-wp} for proof.
+\end{definition}
+
+% Restore default definition background
+\tcolorboxenvironment{definition}{
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specOrange},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
+}
+
+\begin{proposition}[Well-posedness of the free space]
+\label{prop:free-space-wp}
+Under the Go2 parameters
+(Definition~\ref{def:quadruped-state}):
+\begin{enumerate}[label=(\roman*),nosep]
+\item \emph{Non-emptiness.}\;
+  $\cF_{\mathrm{loco}} \neq \emptyset$.
+  The default standing state
+  ($\theta_0 = (0.0,\, 0.8,\, {-}1.5)^{\otimes 4}$,
+  $h = 0.312\,\mathrm{m}$)
+  satisfies static equilibrium with all four feet
+  on the ground.
+\item \emph{Compactness.}\;
+  $\cF_{\mathrm{loco}}$ is compact:
+  zero velocity forces boundedness in $T\mathcal{Q}$;
+  joint limits and the viability constraint
+  $K_{\mathrm{loco}}$ are closed.
+\item \emph{Regularity.}\;
+  The interior of $\cF_{\mathrm{loco}}$
+  is a smooth manifold
+  ($g(q)$ and $J_c(q)$ are smooth;
+  implicit function theorem applies).
+  The boundary $\partial \cF_{\mathrm{loco}}$
+  is piecewise smooth
+  (smooth on faces where one inequality
+  is active, corners where two meet).
+\item \emph{Separability.}\;
+  $\cH_{\mathrm{loco}}
+  = L^2(\cF_{\mathrm{loco}}, \rho^*;\, \R^{12})$
+  is a separable Hilbert space.
+  $\cF_{\mathrm{loco}}$ compact
+  and $\rho^*$ induced by Drunk Command
+  (Uniform on a bounded set)
+  imply $\rho^*$ is a finite Borel measure;
+  $L^2$ over a finite measure on a compact space
+  is always separable.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(i)~Direct verification with Go2 parameters
+(Definition~\ref{def:quadruped-state}).
+(ii)~$\cF_{\mathrm{loco}} \subset
+  \{(q,0) \in T\mathcal{Q}\}$
+  with $q$ in the joint-limit polytope;
+  continuous constraint functions
+  on a compact domain have closed preimage.
+(iii)~At interior points all constraint inequalities
+  are strict;
+  the constraint map
+  $q \mapsto g(q) - B\tau - J_c(q)^\top\lambda$
+  has full-rank Jacobian
+  when $J_c^{(g)}$ is invertible
+  (four non-coplanar feet).
+(iv)~Standard: $L^2$ over a compact space
+  with a finite Borel measure is separable
+  (countable dense set from polynomials
+  on a compact manifold).
+\end{proof}
+
+\begin{definition}[Mechanical connection and holonomy]
+\label{def:holonomy-locomotion}
+Fix a contact mode $c \in \{0,1\}^4$
+with $|c| \geq 1$ (at least one foot on the ground).
+The contact constraint
+$J_c(q)\,\dot{q} = 0$
+(no slip at active feet)
+defines a \emph{mechanical connection}
+\begin{equation}\label{eq:mech-connection}
+  A_c \;:\; T_\theta \mathcal{Q}_{\mathrm{shape}}
+  \;\longrightarrow\;
+  \mathfrak{se}(3),
+  \qquad
+  A_c(\dot\theta)
+  \;=\;
+  -\bigl(J_c^{(g)}\bigr)^{-1}
+   J_c^{(\theta)}\,\dot\theta,
+\end{equation}
+where $J_c^{(g)}$ and $J_c^{(\theta)}$ are the
+body-pose and joint-angle blocks of $J_c$.
+The connection $A_c$ maps a joint velocity
+to the body twist it induces
+via the contact constraint:
+move the joints, the feet are pinned,
+so the body must move.
+
+\medskip\noindent
+A \emph{gait cycle} is a closed loop
+$\gamma : [0, T] \to \mathcal{Q}_{\mathrm{shape}}$,
+$\gamma(0) = \gamma(T)$,
+together with a piecewise-constant
+contact mode function
+$c : [0, T] \to \{0,1\}^4$
+(the mode switches at foot-strike and foot-lift events).
+The \emph{holonomy} of $\gamma$ is
+\begin{equation}\label{eq:holonomy}
+  \mathrm{Hol}(\gamma)
+  \;=\;
+  \overleftarrow{\prod}_{i}
+  \exp\!\Bigl(
+    \int_{t_i}^{t_{i+1}}
+    A_{c_i}\!\bigl(\dot\gamma(t)\bigr)\,dt
+  \Bigr)
+  \;\in\; \mathrm{SE}(3),
+\end{equation}
+where the ordered product is over the segments
+$[t_i, t_{i+1}]$ on which the contact mode
+is constant at $c_i$.
+$\mathrm{Hol}(\gamma)$ is the net body displacement
+after one gait cycle:
+the joints return to where they started,
+the robot has moved.
+\end{definition}
+
+\begin{theorem}[Holonomy differentiability of the free space]
+\label{thm:holonomy-diff}
+Let $\Gamma$ be a gait pattern
+(a fixed cyclic sequence of contact modes
+$c_1, \ldots, c_n, c_1$
+with prescribed topology:
+which feet strike and lift in which order).
+Let $\gamma_s : [0, T] \to \mathcal{Q}_{\mathrm{shape}}$,
+$s \in S$,
+be a smooth family of gait cycles
+realising $\Gamma$,
+parametrised by gait parameters
+$s = (\text{amplitude, frequency, phase offsets})
+\in S \subset \R^p$.
+Assume all contact transitions are \emph{transversal}:
+at each switching time $t_i(s)$,
+the foot height crosses zero
+with nonzero velocity.
+Then:
+\begin{enumerate}[nosep]
+\item \textbf{Smooth free space.}\;
+  $\cF_{\mathrm{loco}}$ is a compact smooth
+  submanifold of $K_{\mathrm{loco}}$
+  (with boundary where the static balance
+  or torque-limit constraints are active).
+\item \textbf{Smooth holonomy.}\;
+  The holonomy map
+  $\mathrm{Hol} : S \to \mathrm{SE}(3)$,\;
+  $s \mapsto \mathrm{Hol}(\gamma_s)$,
+  is $C^\infty$ on $S$.
+\item \textbf{Orbit decomposition.}\;
+  $\mathrm{Viab}(K_{\mathrm{loco}})
+    = \bigcup_{\Gamma}\,
+      \mathrm{Orbit}_\Gamma(\cF_{\mathrm{loco}})$,
+  where the union is over all viable gait patterns,
+  and
+  $\mathrm{Orbit}_\Gamma(\cF_{\mathrm{loco}})$
+  is the set of states visited by trajectories
+  starting in $\cF_{\mathrm{loco}}$
+  and executing gait pattern $\Gamma$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+\emph{Part~1.}\;
+In the all-contact mode $c = (1,1,1,1)$,
+the EL equation~\eqref{eq:el-contact}
+is a smooth ODE
+(no switching---all feet are on the ground).
+The equilibrium conditions
+($\dot{q} = 0$, $\ddot{q} = 0$,
+$g(q) = B\tau + J_c^\top\lambda$,
+$x \in K_{\mathrm{loco}}$)
+define $\cF_{\mathrm{loco}}$
+as a sublevel set of smooth functions.
+The implicit function theorem gives the manifold structure;
+the constraint boundaries (joint limits, torque limits)
+give the boundary.
+
+\medskip\noindent
+\emph{Part~2.}\;
+Within each contact mode $c_i$,
+the flow $\Phi_{c_i}^t$ of the smooth ODE
+is $C^\infty$ in $(t, x)$.
+At each switching time $t_i(s)$,
+transversality means the foot height
+$h_{\mathrm{foot}}(x)$ crosses zero
+with $\dot{h}_{\mathrm{foot}} \neq 0$.
+By the implicit function theorem,
+$t_i(s)$ is a $C^\infty$ function of $s$.
+The holonomy~\eqref{eq:holonomy}
+is a composition
+$\mathrm{Hol}(\gamma_s)
+  = \Phi_{c_n}^{\Delta t_n(s)}
+    \circ \cdots \circ
+    \Phi_{c_1}^{\Delta t_1(s)}$,
+which is $C^\infty$ as a composition
+of smooth maps with smooth time arguments.
+
+\medskip\noindent
+\emph{Part~3.}\;
+By definition of the viability kernel,
+every $x \in \mathrm{Viab}(K_{\mathrm{loco}})$
+admits a control keeping $x(t) \in K_{\mathrm{loco}}$
+forever.
+Any such trajectory either stays in
+$\cF_{\mathrm{loco}}$ (standing)
+or executes some gait pattern $\Gamma$
+(periodic or transient).
+The trajectory visits states in
+$\mathrm{Orbit}_\Gamma(\cF_{\mathrm{loco}})$
+by construction.
+The reverse inclusion
+$\mathrm{Orbit}_\Gamma(\cF_{\mathrm{loco}})
+  \subseteq \mathrm{Viab}(K_{\mathrm{loco}})$
+holds because any state on a viable gait orbit
+can continue that gait
+(or transition to standing).
+
+\medskip\noindent
+\textbf{Where smoothness fails.}\;
+Transversality fails at \emph{grazing}:
+a foot barely touches the ground and lifts
+without penetrating
+($\dot{h}_{\mathrm{foot}} = 0$
+at the switching surface).
+At grazing, $t_i(s)$ is not smooth in $s$,
+and the holonomy map has a cusp.
+Grazing is codimension~1 in $S$:
+it occurs on a measure-zero set of gait parameters.
+Generic gaits are transversal.
+\end{proof}
+
+\begin{remark}[Locomotion as parallel transport]
+\label{rem:locomotion-parallel-transport}
+Theorem~\ref{thm:holonomy-diff} makes precise
+why a trained policy $\pi_\theta$ is a gauge field
+(Remark~\ref{rem:model-free-locomotion}).
+The policy maps state to torque;
+the torque, through the contact constraint,
+produces body displacement---this is
+the mechanical connection $A_c$~\eqref{eq:mech-connection}.
+A gait cycle is a closed loop in joint space.
+The holonomy $\mathrm{Hol}(\gamma) \in \mathrm{SE}(3)$
+is the net displacement.
+The robot walks \emph{because} the connection
+has nontrivial holonomy:
+$\mathrm{Hol}(\gamma) \neq \mathrm{Id}$.
+
+\medskip\noindent
+The mass gap $m_* > 0$ of the Yang--Mills theory
+corresponds here to
+$\norm{\mathrm{Hol}(\gamma) - \mathrm{Id}} > 0$:
+the gait actually moves the robot.
+A zero-holonomy gait
+(symmetric leg motion, net displacement zero)
+is the trivial connection---massless,
+no locomotion.
+\end{remark}
+
 \begin{definition}[Executor assembling]\label{def:executor-assembling}
 Let $\cT = \{t_1, \ldots, t_k\}$ be a finite set of \emph{executor types},
 each with movement graph $G_{t_i}$.
@@ -5352,6 +7098,13 @@ B.~Julia.
 \newblock In \emph{Number Theory and Physics},
 Springer Proceedings in Physics, vol.~47, pp.~276--293, 1990.
 
+\bibitem{Haarnoja2018}
+T.~Haarnoja, A.~Zhou, P.~Abbeel, and S.~Levine.
+\newblock Soft actor-critic: off-policy maximum entropy deep
+reinforcement learning with a stochastic actor.
+\newblock In \emph{International Conference on Machine Learning
+(ICML)}, pp.~1861--1870, 2018.
+
 \end{thebibliography}
 
 % ============================================================
@@ -5410,7 +7163,8 @@ Normalization & Pre-LayerNorm & Stable training \\
 The verification gate implements three levels:
 
 \begin{algorithm}[H]
-\caption{Verification Gate $\cG$}\label{alg:verify}
+\caption{Verification Gate $\cG$
+  \textup{[Three-Level Symbolic--Numeric Oracle]}}\label{alg:verify}
 \begin{algorithmic}[1]
 \Require Expression string $e$
 \Ensure $\texttt{ACCEPT}$ or $\texttt{REJECT}$
@@ -5481,6 +7235,92 @@ $H$ & Data window: number of most recent games the King sees (Definition~\ref{de
 $K$ & Viability constraint: pool states with $\mathrm{NLR} \geq 1$ (Proposition~\ref{prop:viability}) \\
 $\mathrm{Viab}(K)$ & Viability kernel: largest subset of $K$ with perpetual feasibility (Proposition~\ref{prop:viability}) \\
 $f_\theta$ & Amortized King: learned warm-start for $(\tau_{\mathrm{UV}}, \tau_{\mathrm{IR}})$ (Definition~\ref{def:amortized-king}) \\
+$k$ & Number of strategic frameworks in the pool ($= 5$) \\
+$S$ & Number of board scales, $S = |\Lambda_R|$ ($= 9$) \\
+$\rho^*_N$ & Drunk reference measure on $N \times N$ board (Definition~\ref{def:svot}) \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Go / MOPL symbols}} \\
+$\cP$ & Strategic framework pool (set of $k$ frameworks $+$ weights $\bar{w}$) \\
+$\bar{w} \in [0,1]^k$ & Pool weights (running-average win rates, clamped to $[0.01, 0.99]$) \\
+$\Lambda_R$ & Expanding lattice of prime board sizes $= \{5, 7, 11, 13, 17, 19, 23, 29, 31\}$ \\
+$F(\pi)$ & Free energy of policy $\pi$ (Definition~\ref{def:transcommutation}) \\
+$\cF$ & Free core: largest viable invariant set (Proposition~\ref{prop:viability}) \\
+$M_H$ & Outcome matrix restricted to the last $H$ games (Definition~\ref{def:two-temp}) \\
+$\pi_f \in \Delta^{k-1}$ & Framework selection distribution $= \softmax(\log \bar{w} / \tau_{\mathrm{IR}})$ \\
+$\pi_{\mathrm{scale}} \in \Delta^{S-1}$ & Scale selection distribution $= \softmax(\hat{V} / \tau_{\mathrm{UV}})$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\clearpage
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}cl@{}}
+\toprule
+\textbf{Symbol} & \textbf{Meaning} \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Locomotion symbols
+  (\S\ref{sec:locomotion})}} \\
+$M(q)$ & Mass matrix (Definition~\ref{def:el-universe}) \\
+$C(q,\dot{q})$ & Coriolis/centrifugal matrix \\
+$g(q)$ & Gravity vector \\
+$J_c(q)$ & Contact Jacobian \\
+$\lambda$ & Contact impulses (Signorini complementarity) \\
+$q \in \mathrm{SE}(3) \times \R^{12}$ & Configuration:
+  6 base (pose) $+$ 12 joints
+  (Definition~\ref{def:quadruped-state}) \\
+$x \in \R^{42}$ & Observation:
+  $R(9) + p(3) + \omega(3) + v(3)
+    + \theta(12) + \dot\theta(12)$ \\
+$\tau \in \R^{12}$ & Joint torques (action),
+  $|\tau_i| \leq \bar\tau_i$ \\
+$v_{\mathrm{cmd}} \in \R^3$ & Command:
+  $(v_x, v_y, \omega_z)$
+  (Definition~\ref{def:command-space}) \\
+$c \in \{0,1\}^4$ & Contact mode
+  (Definition~\ref{def:contact-mode}),
+  emergent diagnostic \\
+$\rho^*(\cdot \mid o)$ & Drunk Command kernel:
+  $\mathrm{Uniform}\!\bigl(\cR(o)\bigr)$
+  (Definition~\ref{def:drunk-command}) \\
+$K_{\mathrm{loco}}$ & Viability constraint:
+  not-fall
+  (Definition~\ref{def:viability-locomotion}) \\
+$\cF_{\mathrm{loco}}$ & Free space manifold:
+  compact, $\dim \leq 18$
+  (Definition~\ref{def:free-space-locomotion}) \\
+$\cE$ & Viable control bundle over
+  $\cF_{\mathrm{loco}}$
+  (Definition~\ref{def:free-space-analytic}) \\
+$\cH_{\mathrm{loco}}$ &
+  $L^2(\cF_{\mathrm{loco}}, \rho^*;\, \R^{12})$:
+  policy Hilbert space
+  (Definition~\ref{def:free-space-analytic}) \\
+$A_c$ & Mechanical connection
+  (Definition~\ref{def:holonomy-locomotion}) \\
+$\mathrm{Hol}(\gamma)$ & Holonomy:
+  net body displacement per gait cycle
+  (Definition~\ref{def:holonomy-locomotion}) \\
+$\mathrm{Step}$ & EL engine:
+  black-box integrator, no $\nabla$
+  (Remark~\ref{rem:el-engine}) \\
+$t_\nu$ & Student-$t$ density with $\nu$ d.f.\
+  (Definition~\ref{def:student-t-policy}) \\
+$\nu_\theta(x)$ & Degrees of freedom:
+  effective contact-mode count
+  (Remark~\ref{rem:student-t-forced}) \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Overloaded symbols (context-dependent)}} \\
+$\delta$ & Chunk overlap $(= 256)$ in \S\ref{sec:arch};
+  gate threshold in Algorithm~\ref{alg:queen} \\
+$K$ & Viability constraint set (Proposition~\ref{prop:viability});
+  generator count in \S\ref{sec:mirror} \\
+$\kappa$ & Integer komi $\kappa(N)$ in \S\ref{sec:experiments};
+  holonomy curvature in \S\ref{sec:arch} \\
+$\lambda$ & Contact impulses in \S\ref{sec:locomotion};
+  command rate in Algorithm~\ref{alg:svot-locomotion} \\
 \bottomrule
 \end{tabular}
 \end{center}
