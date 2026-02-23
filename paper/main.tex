@@ -6437,6 +6437,27 @@ Line~20 replaces this with a target
   \Bigr),
   \qquad c \in (1, 2].
 \]
+The bound $c = 2 = |\{0,1\}|$ is the cardinality of the
+contact alphabet
+(Definition~\ref{def:contact-mode}).
+A single foot touching or leaving the ground is a
+$1$-bit flip in $c \in \{0,1\}^4$;
+the contact Jacobian $J_c$ gains or loses one
+rank-$1$ term $J_i^\top \lambda_i$,
+so the curvature ratio from a single-mode transition
+is bounded by~$2$.
+A $k$-bit mode change (e.g.\ trot transition: $k = 2$;
+jump: $k = 4$) compounds $k$ independent
+single-bit changes,
+giving a curvature ratio $\leq 2^k$
+and an adaptation time of
+$\log_c(2^k) = k$ clip steps---the
+Hamming distance between the two contact modes.
+Flight ($c = 0000$) is not excluded:
+it is one of the $16$ modes,
+and the $4$-step adaptation handles the
+$(1111) \to (0000)$ transition.
+
 When the critic is bad ($\mathbb{E}[\delta^2]$ large),
 $\alpha$ increases---more exploration,
 because the value function is unreliable.
@@ -6824,6 +6845,76 @@ In the language of constructive mathematics:
 the Drunk burst is a \emph{witness}
 for the tunnelling,
 not an existence proof.
+\end{remark}
+
+\begin{remark}[Structural knowledge and maneuverability]
+\label{rem:structural-knowledge}
+The Drunk kernel $\rho^*$
+(Definition~\ref{def:student-t-policy})
+carries two pieces of \emph{a priori} knowledge
+that no purely data-driven policy possesses:
+\begin{enumerate}[nosep]
+\item the \textbf{contact alphabet}
+  $\cC = \{0,1\}^4$
+  (Definition~\ref{def:contact-mode}),
+\item the \textbf{viability constraint}
+  $K_{\mathrm{loco}}$
+  (Definition~\ref{def:viability-locomotion}).
+\end{enumerate}
+Together these define a finite reachability problem:
+$16$ contact modes connected by transitions
+that the Euler--Lagrange dynamics permits.
+\emph{Maneuverability} is reachability on this graph.
+
+A diffusion policy
+$\pi_\theta\colon s \mapsto p(a \mid s)$,
+trained on a demonstration set~$D$,
+learns the empirical distribution over actions.
+It has no explicit representation of~$\cC$
+and cannot certify viability:
+high likelihood under~$D$ does not imply
+$x \in K_{\mathrm{loco}}$.
+When the robot encounters a state
+outside $D$'s support---novel terrain,
+external perturbation, actuator degradation---the
+policy has no mechanism to verify
+whether the contact mode it produces is viable.
+
+The Drunk does not learn gaits.
+The Student-$t$ tails
+visit all $16$ modes with positive probability;
+the viability kernel is a hard constraint,
+not a soft reward signal.
+This is the difference between
+\emph{structural knowledge}
+(the robot stands on its feet---known \emph{a priori}
+from morphology)
+and \emph{statistical knowledge}
+(the robot usually stands---inferred
+from finite data).
+A cat dropped upside-down rights itself
+in ${\sim}\,0.3$\,s.
+This is not learned; it is a hardwired reflex.
+The vestibular system knows which way is down;
+the motor cortex knows which limbs make contact.
+The cat has the contact alphabet
+and the viability constraint.
+A robot trained by behavioural cloning
+on ``how I usually land''
+has a statistical summary of landings,
+not the constraint that forces them.
+
+The maneuverability gap is exponential
+in the number of feet.
+The contact lattice has $2^n$ modes.
+A finite demonstration set covers
+at most $|D|$ state-mode pairs.
+Full viability coverage requires
+demonstrations from all $2^n$ modes
+under all reachable states---exponential in~$n$.
+The Drunk covers all modes by construction
+(Student-$t$ support $= \R^{12}$;
+Remark~\ref{rem:student-t-forced}).
 \end{remark}
 
 %% ── Block 10: Free space, holonomy, theorem ───────────────
