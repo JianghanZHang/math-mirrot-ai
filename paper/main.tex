@@ -5930,16 +5930,33 @@ Every other row is mathematics.
     draw=none, fill=#1, rounded corners=3pt,
     minimum height=1.0cm, minimum width=2.2cm,
     align=center, font=\small},
+  learn/.style={
+    draw=orange!70!black, fill=orange!10,
+    rounded corners=3pt,
+    minimum height=1.0cm, minimum width=2.4cm,
+    align=center, font=\small},
+  buf/.style={
+    draw=yellow!70!black, fill=yellow!15,
+    rounded corners=3pt,
+    minimum height=0.7cm, minimum width=2.0cm,
+    align=center, font=\small},
+  diag/.style={
+    draw=orange!50!black, fill=orange!5,
+    rounded corners=2pt,
+    minimum width=2.4cm,
+    align=center, font=\scriptsize},
   grad/.style={->, thick, blue!70!black, dashed},
   flow/.style={->, thick, black},
   nogo/.style={->, thick, red!60!black,
     decorate, decoration={zigzag, amplitude=1pt,
     segment length=4pt}},
+  burst/.style={->, thick, orange!70!red, dashed},
   lbl/.style={font=\footnotesize\bfseries},
 ]
 % ── Column anchors ──
 % col0: layer labels, col1: input, col2: NN box,
-% col3: output, col4: feedback margin
+% col3: output, col4: feedback margin,
+% col5: learn column (right)
 
 % ── Layer 1: Perception ──
 \node[lbl, green!50!black] (L1) {Layer 1};
@@ -6005,34 +6022,97 @@ Every other row is mathematics.
   node[font=\scriptsize, gray, pos=0.35, above=1pt]
   {next step};
 
-% ── Gradient arrows ──
-\draw[grad] ([yshift=-2pt]state.south west)
-  -- ([yshift=2pt]encoder.north east)
+% ── Reward + Replay buffer ──
+\node[font=\small, below=0.5cm of contact] (reward)
+  {$r_t$};
+\node[font=\scriptsize, text=black!50,
+  right=0.1cm of reward] (rewardlbl)
+  {reward};
+\draw[flow] (contact.south) -- (reward.north);
+
+\node[buf, below=0.4cm of reward] (buffer)
+  {$\mathcal{B}$\\[-2pt]
+  {\scriptsize replay buffer}};
+\draw[flow] (reward) -- (buffer);
+
+% ── Learn block (right column) ──
+\node[learn, right=3.0cm of buffer,
+  minimum height=2.0cm] (learn)
+  {%
+  $\delta = Q_\psi - y$\\[-1pt]
+  {\scriptsize \textbf{curvature} $F$}\\[4pt]
+  {\scriptsize Critic: $\tfrac12\delta^2$
+    (Yang--Mills)}\\[1pt]
+  {\scriptsize Actor: $\alpha\,D_{\mathrm{KL}}$
+    (Faddeev--Popov)}};
+\node[lbl, orange!60!black,
+  above=0.2cm of learn] (learnlbl) {Learn};
+
+\draw[flow] (buffer) -- (learn)
+  node[font=\scriptsize, pos=0.5, above=1pt]
+  {sample};
+
+% ── Gauge diagnostics ──
+\node[diag, below=0.5cm of learn] (gauge)
+  {$\alpha \gets \alpha \cdot
+    \mathrm{clip}\bigl(
+      \mathbb{E}[\delta^2]/\|F\|^2_{\mathrm{ref}}
+    \bigr)$\\[2pt]
+  wrong vacuum $\Rightarrow$ Drunk burst
+    {\scriptsize (instanton)}};
+\node[lbl, orange!50!black,
+  above left=0.1cm and 0.0cm of gauge]
+  (gaugelbl) {\scriptsize diagnostics};
+
+\draw[flow] (learn) -- (gauge);
+
+% ── Gradient arrows from Learn back to NN blocks ──
+% ∇_φ: up from learn (+3pt right), -| to encoder
+\draw[grad] ([xshift=3pt]learn.north)
+  -- ++(0,0.6) -| (encoder.south east)
   node[font=\scriptsize, blue!70!black,
-    pos=0.5, left=1pt] {$\nabla_\phi$};
-\draw[grad] ([yshift=-2pt]torque.south west)
-  -- ([yshift=2pt]policy.north east)
+    pos=0.95, left=1pt] {$\nabla_\phi$};
+% ∇_θ: up from learn (-3pt left), left to policy
+\draw[grad] ([xshift=-3pt]learn.north)
+  -- ([xshift=-3pt]learn.north |- policy.south east)
+  -- (policy.south east)
   node[font=\scriptsize, blue!70!black,
-    pos=0.5, left=1pt] {$\nabla_\theta$};
+    near end, below=1pt] {$\nabla_\theta$};
+
+% ── No-gradient marker on physics ──
 \draw[nogo] ([yshift=-2pt]next.south west)
   -- ([yshift=2pt]engine.north east)
   node[font=\scriptsize, red!60!black,
     pos=0.5, left=1pt] {no $\nabla$};
+
+% ── Drunk burst: instanton — left from gauge, up to ρ* ──
+\draw[burst] (gauge.west) -| (drunk.south)
+  node[font=\scriptsize, orange!70!red,
+    pos=0.3, below=2pt]
+  {Drunk burst {\scriptsize(instanton)}};
+
 \end{tikzpicture}
 
-\caption{Three-layer pipeline of
+\caption{Forward--Learn pipeline of
   Algorithm~\ref{alg:svot-locomotion}.
-  Blue dashed arrows: gradient flows
+  \emph{Left}: three-layer forward pass
+  (perception, policy, physics).
+  \emph{Right}: Learn block---critic loss
+  $= \tfrac12\delta^2$ (Yang--Mills),
+  actor loss $= \alpha\,D_{\mathrm{KL}}$
+  (Faddeev--Popov).
+  Blue dashed: gradient flows
   ($\nabla_\phi$ through encoder,
    $\nabla_\theta$ through policy).
   Red zigzag: no gradient through the EL engine.
+  Orange dashed: Drunk burst (instanton from
+  wrong-vacuum detection;
+  Remark~\ref{rem:gauge-alg}).
+  Gauge diagnostics adapt $\alpha$ to curvature
+  (asymptotic freedom).
   The contact mode $c_t$ is an \emph{output}
   of Layer~3 (emergent), not an input
-  to Layer~2.
-  Upgrading from blind to sighted
-  changes only Layer~1
-  (identity $\to$ CNN/ViT);
-  Layers~2 and~3 are unchanged.}
+  to Layer~2.}
 \label{fig:locomotion-pipeline}
 \end{figure}
 
@@ -6693,6 +6773,57 @@ stochastic integration,
 exactly as the Drunk Walk absorbs
 strategic discontinuities in Go
 (Remark~\ref{rem:model-free-locomotion}).
+\end{remark}
+
+\begin{remark}[Constructive instanton]
+\label{rem:constructive-instanton}
+The Drunk burst
+(Algorithm~\ref{alg:svot-locomotion}, lines~23--25)
+is a \emph{constructive instanton}:
+the tunnelling from wrong vacuum to correct vacuum
+is specified by three computable ingredients,
+not by solving a variational problem.
+\begin{enumerate}[nosep]
+\item \textbf{Trigger.}\;
+  Two gauge-invariant inequalities:
+  $\mathbb{E}_\cB[\delta^2] < \varepsilon_F$
+  and
+  $\norm{\mathrm{Hol}(\gamma) - \mathrm{Id}} < \varepsilon_H$
+  (Remark~\ref{rem:gauge-alg}\,(ii)).
+  Standard SAC cannot distinguish
+  wrong vacuum from convergence.
+\item \textbf{Mechanism.}\;
+  Resample $v_{\mathrm{cmd}} \sim \rho^*$
+  with extended duration
+  $T \sim \mathrm{Exp}(\lambda/4)$.
+  The Student-$t$ policy
+  (Definition~\ref{def:student-t-policy})
+  provides polynomial tunnelling probability
+  $P(\text{escape at distance } d)
+    \propto d^{-\nu}$,
+  versus $\exp(-d^2/2\sigma^2)$ for Gaussian.
+  The heavy tail is forced by
+  contact structure
+  (Remark~\ref{rem:student-t-forced}),
+  not chosen.
+\item \textbf{Verification.}\;
+  After the burst, monitor holonomy.
+  $\mathrm{Hol}(\gamma) \neq \mathrm{Id}$:
+  non-trivial vacuum (walking).
+  $\mathrm{Hol}(\gamma) \approx \mathrm{Id}$:
+  burst failed---fire again.
+\end{enumerate}
+The instanton has finite action
+(bounded reward cost during the burst),
+is localised in time
+($T$ is exponentially distributed),
+and interpolates between
+topologically distinct vacua
+(trivial~$\to$ non-trivial holonomy).
+In the language of constructive mathematics:
+the Drunk burst is a \emph{witness}
+for the tunnelling,
+not an existence proof.
 \end{remark}
 
 %% ── Block 10: Free space, holonomy, theorem ───────────────
