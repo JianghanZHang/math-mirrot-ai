@@ -50,39 +50,46 @@
 \definecolor{specBlue}{HTML}{1E90FF}    % 蓝 Theorem
 \definecolor{specViolet}{HTML}{7B2D8B}  % 紫 Proof
 \tcolorboxenvironment{remark}{
-  frame hidden, breakable, sharp corners,
-  colback=specRed!4,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specRed},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 \tcolorboxenvironment{definition}{
-  frame hidden, breakable, sharp corners,
-  colback=specOrange!5,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specOrange},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 \tcolorboxenvironment{lemma}{
-  frame hidden, breakable, sharp corners,
-  colback=specYellow!5,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specYellow},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 \tcolorboxenvironment{proposition}{
-  frame hidden, breakable, sharp corners,
-  colback=specGreen!4,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specGreen},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 \tcolorboxenvironment{corollary}{
-  frame hidden, breakable, sharp corners,
-  colback=specCyan!4,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specCyan},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 \tcolorboxenvironment{theorem}{
-  frame hidden, breakable, sharp corners,
-  colback=specBlue!5,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specBlue},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 \tcolorboxenvironment{proof}{
-  frame hidden, breakable, sharp corners,
-  colback=specViolet!3,
-  boxsep=0pt, left=3pt, right=3pt, top=2pt, bottom=2pt,
+  enhanced, breakable, sharp corners,
+  colback=white, colframe=white,
+  borderline west={2pt}{0pt}{specViolet},
+  boxsep=0pt, left=5pt, right=3pt, top=2pt, bottom=2pt,
 }
 
 % ── Notation ────────────────────────────────────────────────
@@ -104,6 +111,7 @@
 \newcommand{\cE}{\mathcal{E}}
 \newcommand{\cR}{\mathcal{R}}
 \newcommand{\cC}{\mathcal{C}}
+\newcommand{\cH}{\mathcal{H}}
 \newcommand{\ip}[2]{\langle #1, #2 \rangle}
 \newcommand{\norm}[1]{\lVert #1 \rVert}
 \newcommand{\abs}[1]{\lvert #1 \rvert}
@@ -173,15 +181,7 @@ and that self-validation eliminates hallucination by construction.
 \begin{center}
 \small
 \renewcommand{\arraystretch}{1.15}
-\begin{tabular}{@{}
-  >{\columncolor{specRed!4}}c
-  >{\columncolor{specOrange!5}}c
-  >{\columncolor{specYellow!5}}c
-  >{\columncolor{specGreen!4}}c
-  >{\columncolor{specCyan!4}}c
-  >{\columncolor{specBlue!5}}c
-  >{\columncolor{specViolet!3}}c
-  @{}}
+\begin{tabular}{@{}ccccccc@{}}
 \textcolor{specRed}{\textsc{Remark}} &
 \textcolor{specOrange}{\textsc{Definition}} &
 \textcolor{specYellow}{\textsc{Lemma}} &
@@ -201,7 +201,7 @@ and that self-validation eliminates hallucination by construction.
 
 \smallskip
 {\footnotesize
-Background colours follow Newton's visible spectrum
+Left-bar colours follow Newton's visible spectrum
 (\begin{CJK}{UTF8}{gbsn}赤橙黄绿青蓝紫\end{CJK}).\\
 Energy increases left to right: \emph{qualitative}
 $\longrightarrow$ \emph{verified}.\\
@@ -1962,10 +1962,6 @@ the FPE diffusion across the boundary, smoothing the
 step function $N_t$ into a continuous flow.
 \end{remark}
 
-\medskip
-\noindent
-\fcolorbox{green!60}{green!6}{%
-\begin{minipage}{0.95\linewidth}
 \begin{proposition}[UV completion is necessary above $S^*$]%
 \label{prop:uv-necessary}
 For any opponent with strategic depth $d > 0$,
@@ -1983,7 +1979,6 @@ is unnecessary.
 Above $S^*$, global strategy is required, and it can
 only be learned by seeing the larger world.
 \end{proposition}
-\end{minipage}}
 
 \begin{proof}[Proof sketch]
 The pool $\cP$ carries over unchanged across scale transitions
@@ -2582,13 +2577,528 @@ strategic direction.
 \begin{CJK}{UTF8}{gbsn}执黑先行。\end{CJK}
 \end{remark}
 
+% ─────────────────────────────────────────────────
+%  MOPL Triangle: three-phase roadmap
+% ─────────────────────────────────────────────────
+\subsection{The MOPL triangle}\label{sec:mopl-triangle}
+
+The Go instantiation splits into three phases with distinct
+computational roles.
+The phases form a \emph{triangle}, not a hierarchy:
+each vertex has an independent convergence guarantee,
+and the Drunk is the origin from which Queen and King
+are excitations.
+Table~\ref{tab:mopl-triangle} summarises the comparison;
+Figure~\ref{fig:drunk-flow} shows the data-flow pipeline.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{The three MOPL phases at a glance.}\label{tab:mopl-triangle}
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+& \textbf{Phase~0: Drunk}
+& \textbf{Phase~1: Queen}
+& \textbf{Phase~2: King} \\
+\midrule
+\textbf{Section}
+  & \S\ref{sec:drunk-game}
+  & \S\ref{sec:queens-gambit}
+  & \S\ref{sec:kings-control} \\
+\textbf{Algorithm}
+  & Alg.~\ref{alg:drunk-calibration}
+  & Alg.~\ref{alg:queen}
+  & Alg.~\ref{alg:king} \\
+\textbf{Role}
+  & Calibrate $\mu_N$
+  & Optimise $\bar{w} > \mu_N$
+  & Enforce $\mathrm{NLR} \geq 1$ \\
+\textbf{Learning}
+  & None (coin $+$ uniform)
+  & Running average (SLLN)
+  & SGD in log-space \\
+\textbf{Model}
+  & Model-free ($\cF = \cX$)
+  & Forward FP (model-based)
+  & Backward HJB (model-based) \\
+\textbf{Output}
+  & Base measure $(\hat{p}_c, \hat{\kappa}, \hat{\sigma})$
+  & Trained pool $\bar{w}$
+  & Temperatures $(\tau^*_{\mathrm{UV}}, \tau^*_{\mathrm{IR}})$ \\
+\textbf{Data}
+  & $M$ self-play games
+  & All $n$ games
+  & Last $H$ games (window) \\
+\textbf{Convergence}
+  & $O(1/\!\sqrt{M})$ SLLN
+  & $O(1/\!\sqrt{n})$ SLLN
+  & Geometric, $\gamma \approx 1 - 1/H$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\medskip\noindent
+\textbf{Degenerations.}\;
+King at $\tau \to \infty$ (pure exploration) $=$ Drunk.
+Queen at learning rate $\eta \to 0$ (no updates) $=$ Drunk.
+The Drunk is the intersection of both degenerations---the
+origin of the (learning, optimisation) plane.
+
+\medskip\noindent
+\textbf{Orthogonality.}\;
+Queen updates $\bar{w} \in [0,1]^k$;
+King updates $\tau \in \mathbb{R}^2$.
+Disjoint parameter coordinates.
+Errors are additive, not multiplicative.
+
+\medskip\noindent
+\textbf{Data flow.}\;
+Drunk $\to$ Queen (base measure $\mu_N$)
+$\to$ King (pool state $\bar{w}$).
+A sequential pipeline: each phase reads only
+the output of its predecessor.
+
+% ── Three-phase pipeline diagram ──
+\begin{figure}[ht]
+\centering
+\input{figures/drunk_flow}
+\caption{The three-phase MOPL pipeline.
+  Phase~0 (Drunk) calibrates the base measure~$\mu_N$.
+  Phase~1 (Queen) optimises the pool $\bar{w}$ above~$\mu_N$.
+  Phase~2 (King) enforces $\mathrm{NLR} \geq 1$ while
+  the Queen optimises.
+  Arrows show data flow; the Drunk's output is the input
+  to both Queen and King.}\label{fig:drunk-flow}
+\end{figure}
+
+\subsection{The Drunk Game: ground state calibration (Phase~0)}%
+\label{sec:drunk-game}
+
+Before optimising, we must calibrate.
+The Queen (\S\ref{sec:queens-gambit} below) and the King
+(\S\ref{sec:kings-control} below) both require a
+\emph{base measure}: what does the board produce under
+zero intelligence?
+Standard Go has three strategic decisions per turn:
+\emph{who} plays (turn order),
+\emph{whether} to play (pass vs.\ place), and
+\emph{where} to play (intersection choice).
+Phase~0 constructs a game that preserves the turn
+structure but replaces each strategic decision with an
+independent random variable,
+\emph{transcommuting} complexity with stochasticity.
+Ownership is earned \emph{a posteriori} by action alone.
+
+\begin{definition}[%
+\begin{CJK}{UTF8}{gbsn}醉局\end{CJK}
+--- the Drunk Game]\label{def:drunk-game}
+Fix $N \in \N$.
+The \emph{Drunk Game} on the $N \times N$ lattice graph
+$G = (V, E)$, $|V| = N^2$, is defined by:
+\begin{enumerate}[label=(\roman*),nosep]
+\item \textbf{Players.}
+  Two players: Black (B) and White (W).
+  Colours are assigned, as in standard Go.
+\item \textbf{Turn order.}
+  Fixed alternation
+  $\mathrm{B\text{--}W\text{--}B\text{--}W\text{--}}\cdots$
+  (deterministic, identical to standard Go).
+\item \textbf{Coin flip.}
+  At each turn, the active player flips a fair coin
+  ($p = \tfrac{1}{2}$).
+  Heads: place a stone.
+  Tails: skip (forfeit the turn).
+  This replaces the strategic \emph{whether} decision.
+\item \textbf{Placement.}
+  If placing, the position is drawn uniformly at random
+  from the set of empty intersections.
+  This replaces the strategic \emph{where} decision.
+\item \textbf{Stones.}
+  All stones on the board are \emph{visually identical}:
+  no colour markings.
+  The game record tracks which player placed each stone,
+  but this information is invisible during play.
+  Ownership is not colour; ownership is \emph{action}.
+\item \textbf{Closure event.}
+  If the placed stone at~$v$ completes a simple closed
+  curve $\gamma \subset G$ (a cycle in the stone graph),
+  the player who placed~$v$ scores
+  $|\mathrm{int}(\gamma)|$ (the number of interior
+  vertices).
+  All boundary stones of $\gamma$ are marked with that
+  player's identity.
+  Ownership is \emph{post-hoc}: it exists only after closure.
+\item \textbf{Terminal.}
+  The game ends when the board is full or both players
+  skip in succession.
+  Higher cumulative score wins.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}[Transcommutation: complexity
+  $\leftrightarrow$ randomness]%
+\label{rem:transcommutation}
+\color{black!60}%
+The passage from standard Go to the Drunk Game is a
+\emph{basis change}, not a simplification.
+Every strategic decision axis in standard Go is
+independently mapped to a random variable;
+the scoring topology is preserved as an invariant:
+
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Decision axis} & \textbf{Standard Go} &
+\textbf{Drunk Go} & \textbf{Change} \\
+\midrule
+Who (turn order) &
+  B--W alternation &
+  B--W alternation &
+  None (invariant) \\
+Whether (play/skip) &
+  Strategic (pass is rare) &
+  Coin flip ($p = \tfrac{1}{2}$) &
+  Strategy $\to$ Bernoulli \\
+Where (placement) &
+  Strategic ($\sim\!10^{170}$ choices) &
+  Uniform random &
+  Strategy $\to$ uniform \\
+Scoring &
+  Territory (colour-dependent) &
+  Closure (topology-dependent) &
+  Label $\to$ action \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The turn structure is \emph{preserved}---both games are
+B--W--B--W with the same alternation.
+The strategic complexity is \emph{transcommuted} into
+stochasticity: each decision that was a function of
+the game state becomes an independent random variable.
+The total information is conserved in the scoring
+topology---closure detects the same geometric structure
+whether the stones were placed by strategy or by dice.
+
+\medskip\noindent
+\textbf{The self-dual point.}\;
+The coin flip probability $p = \tfrac{1}{2}$ is not a
+parameter choice---it is the unique value at which
+the game is self-dual.
+At $p = \tfrac{1}{2}$, the expected number of stones
+placed by Black equals the expected number placed by
+White (both $\sim N^2/4$ per player).
+The forward density of placed stones and the backward
+prediction of closure probability are governed by the
+same measure:
+\[
+  \Pr[\text{site occupied}]
+  \;=\;
+  \Pr[\text{site empty}]
+  \;=\;
+  \tfrac{1}{2}\,.
+\]
+This is the game-theoretic functional equation
+$\cF_t = \cB_{T-t}$, realised as Bernoulli site
+percolation at the symmetric point.
+The coin is fair.  The game is its own dual.
+Not by tuning---by construction.
+
+\medskip\noindent
+\textbf{The uncertainty principle.}\;
+The transcommutation obeys a conservation law:
+\[
+  \Delta(\text{strategy})
+  \;\times\;
+  \Delta(\text{randomness})
+  \;\geq\;
+  \mathrm{const}(\text{topology}).
+\]
+Standard Go: $\Delta(\text{strategy})$ is maximal
+($\sim\!10^{170}$),
+$\Delta(\text{randomness}) = 0$.
+Drunk Go: $\Delta(\text{strategy}) = 0$,
+$\Delta(\text{randomness})$ is maximal ($\tfrac{1}{2}$
+per site).
+The product---the closure topology---is preserved.
+Complexity did not disappear.
+It changed representation.
+\end{remark}
+
+\begin{definition}[Self-dual game]\label{def:self-dual}
+A two-player game~$\Gamma$ with state evolution operator
+$\cF_t$ (forward) and value prediction operator
+$\cB_t$ (backward) is \emph{self-dual} if
+\[
+  \cF_t \;=\; \cB_{T-t}
+  \qquad \text{for all } 0 \leq t \leq T.
+\]
+In standard Go,
+$\cF_t \neq \cB_{T-t}$ because ownership is pre-assigned:
+the forward density of Black stones and the backward
+value for White are structurally different objects.
+In the Drunk Game, although colours are assigned (B--W
+alternation is preserved), ownership is determined by the
+closure event---the same topological operation that defines
+the state transition.
+The fair coin ($p = \tfrac{1}{2}$) ensures symmetric
+occupation probabilities
+(Remark~\ref{rem:transcommutation}),
+so $\cF_t = \cB_{T-t}$.
+\end{definition}
+
+\begin{proposition}[Forward--backward collapse]%
+\label{prop:fb-collapse}
+In the Drunk Game (Definition~\ref{def:drunk-game}),
+let $O_t \subset V$ denote the set of occupied vertices
+at time~$t$, and let $p(t) = |O_t|/|V|$ be the occupation
+density.
+The Fokker--Planck density $\rho(x, t)$
+(Proposition~\ref{prop:fpe}) and the value function
+$V(x)$ satisfy the same equation up to time reversal.
+Specifically:
+\begin{enumerate}[label=(\alph*),nosep]
+\item Below the percolation threshold $p < p_c$,
+  both $\rho$ and $V$ are diffusive:
+  $\partial_t \rho = \frac{1}{2}\Delta \rho$
+  and $V$ satisfies a backward heat equation.
+\item At $p = p_c$, both undergo phase transition
+  simultaneously: giant connected components form,
+  closure becomes inevitable, and the forward density
+  of ``stones placed'' equals the backward prediction
+  of ``who closes first.''
+\item The duality of Proposition~\ref{prop:duality}
+  collapses to identity: forward $=$ backward.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+The state at time~$t$ is $O_t \subset V$.
+The forward process adds vertices via B--W alternation
+with independent coin flips ($p = \tfrac{1}{2}$ each)
+and uniform random placement.
+The backward value asks: given $O_t$, what is
+$\Pr[\text{player } i \text{ closes first}]$?
+Since stones are visually identical on the board and
+the coin is fair, each player's marginal placement
+rate is the same ($\sim\! N^2/4$ stones in expectation).
+This probability depends only on $|O_t|$ and the
+topology of $O_t$---exactly the information that
+determines the forward density~$\rho$.
+The percolation threshold $p_c = |O_t|/|V|$ is the
+critical density at which giant connected components
+form on the lattice.
+At~$p_c$, closure becomes inevitable, and the forward
+evolution and backward prediction coincide as operators
+on the same state space.
+\end{proof}
+
+\begin{remark}[The duality map]\label{rem:duality-map}
+The passage from standard Go to the Drunk Game is the
+passage from asymmetric duality
+(Proposition~\ref{prop:duality}) to self-duality:
+\medskip
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+& \textbf{Standard Go} & \textbf{%
+\begin{CJK}{UTF8}{gbsn}醉围棋\end{CJK}
+{} (Drunk Go)} \\
+\midrule
+Turn order & B--W (deterministic) & B--W (deterministic) \\
+Whether to play & Strategic & Coin flip ($p = \tfrac{1}{2}$) \\
+Where to play & Strategic & Uniform random \\
+Ownership & Colour (a priori) & Closure (a posteriori) \\
+FP vs.\ HJB & $\cF_t \neq \cB_{T-t}$ & $\cF_t = \cB_{T-t}$ \\
+Analytic analogue & $\zeta(s)$
+  & $\zeta(s)$ under $s \mapsto 1-s$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\medskip
+\noindent
+The first row is the invariant---both games share the same
+B--W alternation.
+The second and third rows are the transcommutation---strategy
+$\to$ randomness.
+Self-duality is the game-theoretic shadow of the
+functional equation.
+The Drunk Game is to Go what $s \mapsto 1-s$ is to
+the zeta function.
+\end{remark}
+
+\begin{remark}[Model-free RL\@: modeling the free core]%
+\label{rem:model-free}
+\color{black!60}%
+The Queen, King, and Drunk Game form a triangle---not
+a hierarchy:
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Vertex} & \textbf{Role} &
+\textbf{What it models} & \textbf{Type} \\
+\midrule
+Queen & Primal (forward FP) &
+  Pool $\bar{w} \in [0,1]^k$ &
+  Model-based \\
+King & Dual (backward HJB) &
+  Value $\hat{V}(s)$, temperatures $\tau$ &
+  Model-based \\
+Drunk & Origin &
+  Nothing (pure randomness) &
+  Model-free \\
+\bottomrule
+\end{tabular}
+\end{center}
+\noindent
+The Drunk Game is the \emph{origin} of the
+(learning, optimisation) plane:
+the Queen moves along the learning axis
+($\bar{w}$ updates),
+the King moves along the optimisation axis
+($\tau$ tunes),
+and the Drunk sits at $(0, 0)$---no learning,
+no optimisation, but still producing valid games
+with valid outcomes.
+
+\medskip\noindent
+\textbf{Degenerations.}\;
+King at $\tau \to \infty$ (pure exploration) $=$ Drunk.
+Queen at learning rate $\eta \to 0$ (no updates) $=$ Drunk.
+The Drunk is where both degenerations meet:
+the intersection of ``primal with no learning'' and
+``dual with no optimisation.''
+
+\medskip\noindent
+\textbf{The punchline.}\;
+In the Freedom Theorem
+(Proposition~\ref{prop:contraction}),
+the free core $\cF$ is what remains after dissipation
+contracts the state space.
+At the origin---zero learning, zero optimisation,
+zero dissipation---the free core is the \emph{entire}
+state space: $\cF = \cX$.
+Everything is free.
+The Drunk Game is not ``RL without a model.''
+It is RL \emph{of} the free thing.
+``Model-free'' is not jargon.
+It is a theorem name:
+\emph{the model whose object is the free core $\cF$}.
+\end{remark}
+
+\begin{algorithm}[ht]
+\caption{Drunk Calibration (Phase~0)}\label{alg:drunk-calibration}
+\begin{algorithmic}[1]
+\Require Lattice sizes $\Lambda_R = \{5, 7, 11, \ldots, 31\}$,
+  games per scale~$M$
+\Ensure Base measure
+  $\mu = \{(\hat{p}_c, \hat{\kappa}, \hat{\sigma})\}_N$
+\For{$N \in \Lambda_R$}
+  \For{$m = 1, \ldots, M$}
+    \State Play $\textsc{DrunkGame}(N)$
+      \Comment{Def.~\ref{def:drunk-game}: coin $+$ uniform}
+    \State Record first-closure density $d_m$,
+      scores $(s^B_m, s^W_m)$
+  \EndFor
+  \State $\hat{p}_c(N) \gets \mathrm{mean}(d_1, \ldots, d_M)$
+    \Comment{percolation threshold}
+  \State $\hat{\kappa}(N)
+    \gets \mathrm{median}(s^B - s^W)$
+    \Comment{fair komi}
+  \State $\hat{\sigma}(N)
+    \gets \mathrm{std}(\text{territory sizes})$
+    \Comment{score spread}
+  \State \textbf{verify}
+    $\mathrm{NLR}_{\mathrm{drunk}}
+    \approx 50\% \pm 1/\sqrt{M}$
+    \Comment{self-dual check}
+\EndFor
+\State \Return $\mu$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{proposition}[Drunk calibration convergence]%
+\label{prop:drunk-convergence}
+For each $N \in \Lambda_R$, the Drunk calibration
+(Algorithm~\ref{alg:drunk-calibration}) satisfies:
+\begin{enumerate}[label=(\alph*),nosep]
+\item $\hat{p}_c(N) \to p_c(N)$ at rate $O(1/\sqrt{M})$
+  (SLLN for i.i.d.\ Bernoulli site percolation).
+\item $\hat{\kappa}(N) \to 0$ at rate $O(1/\sqrt{M})$
+  (self-duality: $p = \tfrac{1}{2}$ forces
+  $\mathbb{E}[s^B - s^W] = 0$).
+\item The base measure $\mu$ is the null hypothesis:
+  Queen win rate $> 50\%$ against~$\mu$ certifies
+  that the pool has learned structure beyond random play.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Each Drunk game is i.i.d.\ (the coin flips and placements
+are independent across games).
+Part~(a): the first-closure density $d_m$ is a bounded
+random variable on $[0, 1]$; the SLLN gives
+$\hat{p}_c \to \mathbb{E}[d] = p_c$ at $O(1/\sqrt{M})$.
+Part~(b): by self-duality
+(Definition~\ref{def:self-dual}),
+$\mathbb{E}[s^B] = \mathbb{E}[s^W]$ exactly, so the median of
+$s^B - s^W$ converges to~$0$.
+Part~(c): any policy~$\pi$ achieving win rate $> 50\%$
+against the Drunk baseline $\mu$ must exploit
+board structure that pure randomness cannot---this
+is precisely the information content of~$\pi$.
+\end{proof}
+
+\begin{remark}[Komi normalisation as gauge fixing]%
+\label{rem:komi-gauge}
+Define the area-normalised komi on an $N \times N$ board:
+\[
+  \kappa(N)
+    \;=\; \max\!\bigl(1,\;
+      \mathrm{round}(7 \cdot (N/19)^2)\bigr).
+\]
+This acts as gauge fixing
+(cf.\ Definition~\ref{def:two-temp}):
+it sets the zero of the scoring metric uniformly across
+all scales.
+In the Drunk Game, where ownership is emergent, gauge
+fixing is essential---without it the scoring metric is
+scale-dependent, breaking the self-duality of
+Definition~\ref{def:self-dual}.
+\end{remark}
+
+\begin{remark}[Connection to the Euler product]%
+\label{rem:euler-drunk}
+On prime-dimensional boards
+$\Lambda_R = \{5, 7, 11, 13, 17, 19, 23, 29, 31\}$,
+each scale is one irreducible factor.
+The colourless stones are analogous to primes:
+a prime~$p$ has no ``colour''---it belongs to whichever
+number it divides.
+Ownership $=$ divisibility $=$ action, not label.
+The Euler product
+\[
+  \zeta(s)^{-1}
+    \;=\; \prod_{p}\bigl(1 - p^{-s}\bigr)
+\]
+is the partition function of the Drunk Game across
+scales: each local factor $(1 - p^{-s})$ is the
+single-prime game, and the product assembles them
+into the global game---exactly as executor assembling
+(Definition~\ref{def:executor-assembling}) composes
+single-type policies into the full scheduler.
+\end{remark}
+
 \subsection{The Queen's Gambit: gated championship}\label{sec:queens-gambit}
 
 Training produces a pool~$\cP$ with learned framework weights.
 But convergence on average (Theorem~\ref{thm:converge}) does
 not guarantee zero losses at every scale.
-The Queen's Gambit protocol demands \emph{not\_lose\_rate $= 100\%$}
-at each lattice scale \emph{before} championship.
+The Queen's Gambit protocol demands a \emph{not-lose rate}
+of $100\%$ at each lattice scale \emph{before} championship.
 
 \medskip
 \noindent
@@ -2608,12 +3118,8 @@ or the budget is exhausted.
 \end{definition}
 \end{minipage}}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Queen invents the game online]\label{rem:queen-invents}
-\color{blue!50!black}%
+\color{black!60}%
 Queen is not learning to play Go.
 She is \textbf{inventing} Go---online, from scratch, with no
 training data, no opening books, no expert games, no replay buffer.
@@ -2644,7 +3150,7 @@ the pool's coverage has collapsed---Queen has stopped inventing.
 \end{remark}
 
 \begin{remark}[MOPL has zero free parameters]\label{rem:zero-param}
-\color{blue!50!black}%
+\color{black!60}%
 Every constant in MOPL is either uniquely forced by a mathematical
 principle or determined by the game domain.
 None is tuned.
@@ -2684,7 +3190,40 @@ It is a \textbf{measurement instrument}:
 given Go rules and a frozen opponent,
 the output is determined.
 \end{remark}
-\end{minipage}}%
+
+\begin{algorithm}[ht]
+\caption{Queen's Gated Training (Phase~1)}\label{alg:queen}
+\begin{algorithmic}[1]
+\Require Lattice $\Lambda_R$, games per scale $\{n_N\}$,
+  evaluation budget $E$, base measure $\mu$
+  (Algorithm~\ref{alg:drunk-calibration})
+\Ensure Trained pool $\bar{w}$, training log, checkpoint map
+\State Initialise pool: $\bar{w}_i \gets 1/k$ for
+  $i = 1, \ldots, k$ \Comment{max-entropy prior}
+\For{$N \in \Lambda_R$ in increasing order}
+  \For{$m = 1, \ldots, n_N$}
+    \State Sample framework
+      $F \sim \softmax\!\bigl(\log \bar{w} / \tau\bigr)$
+      \Comment{Boltzmann}
+    \State Play game against opponent at size $N$
+      \Comment{MOPL pipeline}
+    \State Observe outcome $o_m \in \{0, 0.5, 1\}$
+    \State $\bar{w}_F \gets
+      (\bar{w}_F \cdot n_F + o_m)\, / \,(n_F + 1)$
+      \Comment{running average}
+  \EndFor
+  \State \textbf{Checkpoint:} play $E$ evaluation games at size $N$
+  \State Compute $\mathrm{WR}(N)$, $\mathrm{NLR}(N)$
+  \State \textbf{Gate:} verify C1--C4:
+  \State \quad C1: $\min_i n_i > 0$ (pool alive)
+  \State \quad C2: $\min_i \bar{w}_i > \epsilon$ (mass gap)
+  \State \quad C3: $\mathrm{NLR}(N) = 100\%$ (Queen viable)
+  \State \quad C4: $|\hat{V}(N) - \mathrm{WR}(N)| < \delta$ (King agrees)
+  \State \textbf{if} any C1--C4 fails \textbf{then} \textbf{halt} \Comment{chain broken}
+\EndFor
+\State \Return $\bar{w}$, training log, checkpoints
+\end{algorithmic}
+\end{algorithm}
 
 \begin{definition}[Championship trial]\label{def:championship}
 After all gates pass, the championship consists of
@@ -3001,13 +3540,9 @@ because addition in $\R$ is commutative and associative,
 so the final value is independent of arrival order.
 \end{proof}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Scaling requires a colony, not a larger queen]%
 \label{rem:colony-scaling}
-\color{blue!50!black}%
+\color{black!60}%
 A single MOPL agent keeps only the 1-bit outcome of each game;
 the full game record
 (\begin{CJK}{UTF8}{gbsn}棋谱\end{CJK})
@@ -3028,15 +3563,10 @@ Zero parameters per agent is unchanged
 (Remark~\ref{rem:zero-param}).
 Total colony parameters $= 0 \times N = 0$.
 \end{remark}
-\end{minipage}}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Connection to ant colony optimisation]%
 \label{rem:aco}
-\color{blue!50!black}%
+\color{black!60}%
 The correspondence is not analogy---it \emph{is}
 ant colony optimisation (ACO) with Go-specific semantics:
 
@@ -3066,16 +3596,11 @@ The colony adds one new structure---$\Phi$---which
 stores the full symbolic circuits that ACO's
 classical formulation discards.
 \end{remark}
-\end{minipage}}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Closed IO loop of the
   \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}]%
 \label{rem:io-circuit}
-\color{blue!50!black}%
+\color{black!60}%
 The write path (Definition~\ref{def:game-record},
 Proposition~\ref{prop:lock}) deposits records into the
 store~$\Phi$ and updates pool weights.
@@ -3162,7 +3687,6 @@ $(\tau_{\text{UV}}, \tau_{\text{IR}})$---resolves the
 cross-scale transfer problem
 (Remark~\ref{rem:telescope}).
 \end{remark}
-\end{minipage}}
 
 \begin{figure}[t]
 \centering
@@ -3218,13 +3742,9 @@ cross-scale transfer problem
 \label{fig:io-circuit}
 \end{figure}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Knowledge is pheromone, not weights]%
 \label{rem:knowledge-is-pheromone}
-\color{blue!50!black}%
+\color{black!60}%
 In a neural network, learned knowledge is stored as
 weight matrices $W \in \mathbb{R}^{d \times d}$:
 opaque, distributed, and requiring interpretation.
@@ -3284,15 +3804,10 @@ This remark: zero hidden knowledge.
 The data grows without bound; only the telescope learns
 (Remark~\ref{rem:telescope}).
 \end{remark}
-\end{minipage}}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Record everything, learn to search]%
 \label{rem:telescope}
-\color{blue!50!black}%
+\color{black!60}%
 The preceding remark lists \emph{what} MOPL stores.
 This remark clarifies \emph{how} the stored knowledge is used.
 The metaphor is astronomical:
@@ -3370,7 +3885,6 @@ Only the telescope---two real numbers---learns.
 This is the complete learning signal of MOPL:
 memories plus a lens, $(\Phi,\, \tau_{\text{UV}},\, \tau_{\text{IR}})$.
 \end{remark}
-\end{minipage}}
 
 \begin{definition}[Telescope search]%
 \label{def:telescope-search}
@@ -3408,13 +3922,9 @@ At $\tau \to \infty$, all records contribute equally
 (quantum limit: uniform, explore).
 \end{definition}
 
-\medskip
-\noindent
-\colorbox{blue!8}{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
 \begin{remark}[Path integral and free energy]%
 \label{rem:path-integral}
-\color{blue!50!black}%
+\color{black!60}%
 Definition~\ref{def:telescope-search} is a path integral:
 each \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}~$\gamma$
 is a path through board-state space,
@@ -3446,9 +3956,8 @@ The telescope's lens~$\tau$ is the inverse temperature
 that interpolates between classical (exploit) and
 quantum (explore).
 \end{remark}
-\end{minipage}}
 
-\begin{proposition}[Unconditional contraction of the pool]%
+\begin{proposition}[Unconditional convergence of the pool]%
 \label{prop:contraction}
 Let $\bar{w}_n^{(i)}$ denote the win rate of framework~$i$
 after $n$ games with that framework, updated by the
@@ -3526,6 +4035,21 @@ $p_i = \tilde{w}_i^{1/\tau} / \sum_j \tilde{w}_j^{1/\tau}
   (k \cdot (1{-}\epsilon)^{1/\tau}) > 0$.
 Since $\sum_t p_i = \infty$, the second Borel--Cantelli
 lemma gives $P(i \text{ selected i.o.}) = 1$.
+
+\medskip\noindent
+\textup{Rate.}\;
+The contraction factor at step~$n$ is $n/(n{+}1) < 1$,
+but $n/(n{+}1) \to 1$: the per-step contraction vanishes.
+This is \emph{not} Banach contraction
+(which requires a uniform bound $c < 1$).
+The convergence rate is algebraic:
+$|\bar{w}_n - \mu| = O(1/\sqrt{n})$ a.s.\
+(by the law of the iterated logarithm, the sharp
+rate is $O(\sqrt{\log\log n \,/\, n})$).
+No discount factor is used.
+The Queen converges through \emph{averaging}
+(the strong law), not through \emph{discounting}
+(a geometric factor $\gamma^n$).
 \end{proof}
 
 \begin{remark}[Freedom Theorem for the pool]%
@@ -3534,12 +4058,14 @@ Proposition~\ref{prop:contraction} is the Freedom Theorem
 applied to the pool:
 dissipative flow (running-average dilution,
 factor $n/(n{+}1)$) on a compact space
-($[0.01, 0.99]^k$, clamped) contracts to a
-finite free core ($\mu^*$, a single point).
+($[0.01, 0.99]^k$, clamped) converges to a
+finite free core ($\mu^*$, a single point)
+at algebraic rate $O(1/\sqrt{n})$.
 Compare Proposition~\ref{prop:honest}:
 there, the \emph{gated iteration} contracts on
-proof space~$\cP$;
-here, the \emph{pool update} contracts on $[0,1]^k$.
+proof space~$\cP$ (geometric rate);
+here, the \emph{pool update} converges on $[0,1]^k$
+(algebraic rate, no discount factor).
 Both are unconditional.
 Their composition---pool contraction feeding
 gated verification---gives MOPL's end-to-end
@@ -3554,12 +4080,12 @@ Proposition~\ref{prop:fpe}).
 The King predicts the outcome \emph{before playing}:
 the backward Hamilton--Jacobi--Bellman (HJB) dual.
 
-\begin{definition}[Predictive horizon]\label{def:horizon}
-The King's predictive horizon $H$ is the set of all
+\begin{definition}[Rollout horizon]\label{def:horizon}
+The King's \emph{rollout horizon} $\cH$ is the set of all
 reachable futures from the current pool state~$\cP$
 within $N$ rollouts of depth~$T$:
 \[
-  H(\cP, N, T) \;=\;
+  \cH(\cP, N, T) \;=\;
     \bigl\{\, \xi^{(i)}_{1:T} \;\big|\;
     i = 1, \ldots, N, \;\;
     \xi^{(i)}_t \sim \pi(\cP, \tau) \,\bigr\}.
@@ -3578,7 +4104,7 @@ examines 14{,}000{,}605 possible futures and finds exactly
 one in which they win.
 This is S-MPPI with $N = 14{,}000{,}605$ rollouts and
 $\tau \to 0$ (greedy selection of the unique winning trajectory).
-The Time Stone \emph{is} the predictive horizon $H$:
+The Time Stone \emph{is} the rollout horizon $\cH$:
 it defines which futures are reachable.
 The King's S-MPPI is the same operation without the
 Stone---JAX computes the rollouts, softmax selects
@@ -3610,13 +4136,11 @@ product---embarrassingly parallel.
 The Queen's forward Fokker--Planck
 (Proposition~\ref{prop:fpe}) evolves the density
 $\rho(x,\Lambda,t)$.
-The King's backward S-MPPI solves the value function
+The King's backward S-MPPI computes the value function
 $\hat{V}(s)$ under the \emph{same} pool state.
-Calibration: $|\hat{V}(s) - V_{\text{actual}}(s)| < \epsilon$
-for $\geq 60\%$ of scales implies the forward and backward
-views agree.
-When they agree, the pool is at equilibrium---the
-DRM (Differential Resonance Machine) is calibrated.
+When $|\hat{V}(s) - V_{\text{actual}}(s)| < \epsilon$
+across a majority of scales, the forward and backward
+views agree and the pool is at equilibrium.
 \end{proposition}
 
 \begin{remark}[JAX implementation]\label{rem:jax}
@@ -3676,10 +4200,49 @@ JAX auto-differentiation computes exact gradients:
 \[
   \theta \;\leftarrow\; \theta - \eta\,\nabla_\theta \cL.
 \]
-This is the kernelized implicit function theorem (IFT):
-pullback through the double Boltzmann to learn the
-temperatures that maximize predicted not-lose.
+The gradient $\nabla_\theta \cL$ pulls back through
+the double Boltzmann to learn the temperatures that
+maximise predicted not-lose rate.
 \end{proposition}
+
+\begin{algorithm}[ht]
+\caption{King's Predictive Control (Phase~2)}\label{alg:king}
+\begin{algorithmic}[1]
+\Require Pool state $\bar{w} \in [0,1]^k$, training log,
+  horizon $H$, learning rate $\eta$, steps $J$,
+  warm-start $\theta_0$ (optional)
+\Ensure Optimal temperatures
+  $(\tau_{\mathrm{UV}}^*, \tau_{\mathrm{IR}}^*)$,
+  predictions $\hat{V}$
+\State $M_H \gets$ outcome matrix from last $H$ games
+  \Comment{$M_H \in \mathbb{R}^{S \times k}$}
+\State $\theta \gets \theta_0$ if warm-start,
+  else $(\log\tau_{\mathrm{UV}},\, \log\tau_{\mathrm{IR}})
+  = (0, 0)$
+\For{$j = 1, \ldots, J$}
+  \State $\tau_{\mathrm{IR}} \gets e^{\theta_{\mathrm{IR}}}$,
+    \quad $\tau_{\mathrm{UV}} \gets e^{\theta_{\mathrm{UV}}}$
+  \State $\pi_f \gets
+    \softmax\!\bigl(\log \bar{w} / \tau_{\mathrm{IR}}\bigr)$
+    \Comment{framework selection}
+  \State $\hat{V}(s) \gets M_H \, \pi_f$
+    \quad for all scales $s$
+    \Comment{Def.~\ref{def:smppi}}
+  \State $\pi_s \gets
+    \softmax\!\bigl(\hat{V} / \tau_{\mathrm{UV}}\bigr)$
+    \Comment{scale selection}
+  \State $\mathcal{L} \gets -\pi_s^\top \hat{V}$
+    \Comment{Eq.~\ref{eq:controller-loss}}
+  \State $\theta \gets \theta - \eta\,\nabla_\theta \mathcal{L}$
+    \Comment{JAX auto-diff}
+\EndFor
+\State $\tau_{\mathrm{UV}}^* \gets e^{\theta_{\mathrm{UV}}}$,
+  \quad $\tau_{\mathrm{IR}}^* \gets e^{\theta_{\mathrm{IR}}}$
+\State \Return
+  $(\tau_{\mathrm{UV}}^*, \tau_{\mathrm{IR}}^*)$,
+  $\hat{V}$, $\theta$ (for warm-start)
+\end{algorithmic}
+\end{algorithm}
 
 \begin{remark}[Two strings and one knob]\label{rem:two-strings}
 $\tau_{\mathrm{UV}}$ controls \emph{where to look}
@@ -3716,10 +4279,533 @@ This is the infinity-Go-universe reduced to linear time:
 $H$ games, each resolved by two softmax lookups.
 \end{remark}
 
-\medskip
+\begin{remark}[Two horizons, two convergence mechanisms]%
+\label{rem:two-horizons}
+The King's architecture separates two horizons.
+Their interplay---and their contrast with the Queen's
+convergence---reveals MOPL's full convergence structure.
+
+\medskip\noindent
+\textbf{Forward lookahead $\cH$.}\;
+Definition~\ref{def:horizon} defines the \emph{rollout horizon}:
+the set of $N$ simulated futures of depth~$T$
+from the current pool state.
+This is the \emph{planning} horizon---what \emph{could} happen.
+In MPC, this corresponds to the open-loop forward simulation
+(Doctor Strange's 14{,}000{,}605 futures).
+
+\medskip\noindent
+\textbf{Backward data window $H$.}\;
+Definition~\ref{def:two-temp} fixes $H \in \N$---the number
+of most recent games used to build the outcome matrix~$M_H$.
+This is the \emph{memory} horizon---what \emph{did} happen.
+Each past game is one realised sample from the
+reachable set~$\cH$.
+Using $H$ samples approximates the forward expectation
+by empirical averaging.
+
+\medskip\noindent
+\textbf{The connection.}\;
+In classical MPC, both horizons coincide: you simulate
+$H$ steps forward.
+In KPC, they separate because the King uses \emph{real}
+past data---not simulated futures---to build the
+prediction matrix.
+The forward lookahead~$\cH$ defines the space;
+the backward window~$H$ samples from it.
+As $H \to \infty$, the empirical matrix~$M_H$
+converges to the true expectation over~$\cH$
+(again by the strong law).
+
+\medskip\noindent
+\textbf{Queen vs.\ King: two independent convergence mechanisms.}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+& \textbf{Queen (forward)} & \textbf{King (backward)} \\
+\midrule
+What converges &
+  Pool $\bar{w} \to \mu^*$ &
+  Temperatures $(\tau_{\mathrm{UV}}, \tau_{\mathrm{IR}}) \to \tau^*$ \\
+Mechanism &
+  Running average (SLLN) &
+  Gradient descent on $\cL$ \\
+Data used &
+  All $n$ games (full history) &
+  Last $H$ games (sliding window) \\
+Rate &
+  Algebraic: $O(1/\sqrt{n})$ &
+  Geometric (if $\cL$ strongly convex) \\
+Discount factor &
+  None (Ces\`{a}ro averaging) &
+  Implicit: $\gamma \approx 1 - 1/H$ \\
+Contraction source &
+  Memory dilution: $n/(n{+}1) \to 1$ &
+  Finite horizon: $H < \infty$ \\
+Independence &
+  Converges for \emph{any} $(\tau_{\mathrm{UV}}, \tau_{\mathrm{IR}})$ &
+  Converges for \emph{any} $\bar{w}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \noindent
-\fcolorbox{blue!60}{blue!6}{%
-\begin{minipage}{0.95\linewidth}
+The two mechanisms are \emph{independent}:
+the Queen's SLLN convergence does not depend on the
+King's temperatures, and the King's gradient descent
+does not depend on the Queen's specific win-rate trajectory.
+The coupling is through \emph{data flow}
+(game outcomes feed both), not through the convergence proofs.
+
+\medskip\noindent
+\textbf{The $H \leftrightarrow \gamma$ equivalence.}\;
+The King's data window~$H$ plays the role of the
+discount factor~$\gamma$ in reinforcement learning.
+A sliding window of size~$H$ assigns uniform weight~$1/H$
+to recent games and weight~$0$ to older games (hard cutoff).
+An exponential discount $\gamma^{n-t}$ assigns geometrically
+decaying weight to past games (soft cutoff).
+Both achieve the same effect: bounding the \emph{effective
+memory} to prevent old data from dominating.
+The equivalence is:
+\begin{equation}\label{eq:H-gamma}
+  \gamma \;\approx\; 1 - \frac{1}{H}\,,
+  \qquad\text{so}\qquad
+  H = 60 \;\Longleftrightarrow\;
+  \gamma \approx 0.983.
+\end{equation}
+Both give contraction:
+$\gamma < 1$ ensures geometric forgetting;
+$H < \infty$ ensures bounded influence of any single game.
+The Queen has neither: $\gamma = 1$ (no discount),
+$H = \infty$ (all data).
+She converges anyway---by averaging, not by discounting.
+
+\medskip\noindent
+\textbf{Two-timescale system.}\;
+The Queen is slow ($1/\sqrt{n}$, all data);
+the King is fast (geometric, warm-started with 50 gradient
+steps per game).
+By the two-timescale stochastic approximation theorem
+\textup{(Borkar, 2008)}, the coupled system converges:
+the fast process (King) sees a quasi-static slow process
+(Queen), and the slow process sees the fast process at
+equilibrium.
+Their composition gives MOPL's end-to-end convergence:
+the Queen finds the right strategy,
+the King executes it optimally.
+
+\medskip\noindent
+\textbf{No log-gas leak.}\;
+A ``leak'' between the two processes would require
+positive feedback: King's output amplifies Queen's
+error, which amplifies King's error, ad infinitum.
+This cannot happen because:
+\begin{enumerate}[label=\textup{(\alph*)},nosep]
+\item The Queen's averaging operator and the King's
+  gradient operator act on \emph{disjoint coordinates}
+  ($[0,1]^k$ vs.\ $\R^2$).
+\item The coupling is a \emph{sequential pipeline}:
+  Queen deposits $\bar{w}$, King reads $\bar{w}$,
+  King plays, outcome~$o$ feeds Queen.
+  No simultaneous write; no within-step feedback.
+\item The Queen's error $|\bar{w}_n - \mu^*| = O(1/\sqrt{n})$
+  is \emph{unconditional}---it holds for any sequence of
+  outcomes, regardless of how the King chose the move.
+  The King changes the \emph{distribution} of~$o$, not the
+  \emph{validity} of the strong law.
+\end{enumerate}
+The errors are additive, not multiplicative.
+The system lives on a product space
+$[0,1]^k \times \R^2$;
+convergence in each factor is independent.
+No energy flows between the two subsystems through the
+data pipeline, because the pipeline is sequential and
+the convergence operators are orthogonal.
+\end{remark}
+
+\begin{proposition}[Recursive feasibility of the King's control]%
+\label{prop:viability}
+\color{black!60}%
+Define the \emph{viability constraint}
+\begin{equation}\label{eq:viability}
+  K \;=\; \bigl\{\, \cP \in [0,1]^k \;\big|\;
+  \exists\, \xi \in \cH(\cP, N, T) \;\text{with}\;
+  \mathrm{NLR}(\xi) \geq 1 \,\bigr\}.
+\end{equation}
+That is, $K$ is the set of pool states from which the King
+can find at least one not-losing rollout.
+The \emph{viability kernel}
+\textup{(Aubin, 1991; translating Monod's
+\emph{Chance and Necessity})}
+is
+\[
+  \mathrm{Viab}(K) \;=\; \bigl\{\, \cP_0 \in K \;\big|\;
+  \exists\, \text{evolution } \cP(t) \text{ with }
+  \cP(t) \in K \;\;\forall\, t \geq 0 \,\bigr\}.
+\]
+Then:
+\begin{enumerate}[label=\textup{(\roman*)}, nosep]
+\item \textbf{Non-emptiness.}\;
+  $\mathrm{Viab}(K) \supseteq \cF$, the free core of
+  Proposition~\ref{prop:contraction}.
+  In particular, $\mathrm{Viab}(K) \neq \emptyset$.
+
+\item \textbf{Recursive feasibility.}\;
+  If\/ $\cP_n \in \mathrm{Viab}(K)$, there exists
+  a framework selection such that
+  $\cP_{n+1} \in \mathrm{Viab}(K)$.
+  Once inside the viability kernel, the King is never stuck.
+
+\item \textbf{Finite reach.}\;
+  For any initial state $\cP_0 \in [0,1]^k$,
+  there exists a finite horizon
+  $H^* < \infty$
+  such that within $H^*$ games
+  the pool enters $\mathrm{Viab}(K)$.
+  Compactness of $[0,1]^k$ guarantees $H^*$ is finite.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+\textup{(i)}\;
+The free core $\cF = \{\mu^*\}$ is the SLLN limit
+(Proposition~\ref{prop:contraction}).
+At $\mu^*$, the pool is at equilibrium: the true win rates.
+Since $\tau > 0$ ensures all frameworks are sampled
+(Borel--Cantelli), and at least one framework has
+$\mu_i > 0$ (the not-lose assumption), there exists
+a rollout with $\mathrm{NLR} \geq 1$.
+Hence $\mu^* \in K$.
+The constant evolution $\cP(t) = \mu^*$ stays in $K$
+forever, so $\mu^* \in \mathrm{Viab}(K)$.
+
+\medskip\noindent
+\textup{(ii)}\;
+By definition: if $\cP_n \in \mathrm{Viab}(K)$,
+there exists an infinite evolution staying in~$K$.
+The first step of that evolution gives a framework
+selection~$f^*$ such that the updated pool~$\cP_{n+1}$
+remains in $\mathrm{Viab}(K)$.
+This is the standard recursive-feasibility argument
+of viability theory.
+
+\medskip\noindent
+\textup{(iii)}\;
+$[0,1]^k$ is compact and the running average is
+dissipative (factor $n/(n{+}1)$).
+By the Freedom Theorem, every orbit enters~$\cF$
+in finite time.
+Since $\cF \subseteq \mathrm{Viab}(K)$ by~\textup{(i)},
+the orbit enters the viability kernel.
+\end{proof}
+
+\begin{lemma}[King's penny --- the primal-dual lemma]%
+\label{lem:kings-penny}
+\color{black!60}%
+Define the \emph{MOPL Lagrangian}
+\begin{equation}\label{eq:mopl-lagrangian}
+  \cL_{\mathrm{PD}}(\bar{w},\, \lambda)
+  \;=\;
+  \bar{w}^\top \hat{V}
+  \;-\;
+  \lambda\,\bigl(1 - \mathrm{NLR}(\bar{w})\bigr),
+\end{equation}
+where $\lambda \geq 0$ is the Lagrange multiplier.
+In Go, $\lambda$ is the \emph{komi}: the compensation points
+the King must concede and still not lose.
+The penny is the komi.
+The King's head is on the penny.
+Then:
+\begin{enumerate}[label=\textup{(\roman*)}, nosep]
+\item \textbf{Weak duality.}\;
+  The Queen's primal optimum upper-bounds the King's
+  dual guarantee:
+  \[
+    \underbrace{\max_{\bar{w}}\;
+      \bar{w}^\top \hat{V}}_
+      {\text{Queen (primal)}}
+    \;\;\geq\;\;
+    \underbrace{\max_\lambda\;
+      \min_\tau\;
+      \cL_{\mathrm{PD}}
+        \;\big|\;
+      \mathrm{NLR} \geq 1}_
+      {\text{King (dual)}}.
+  \]
+
+\item \textbf{Per-game feasibility.}\;
+  If\/ $\cP_n \in \mathrm{Viab}(K)$ and the King follows
+  the regulation map
+  $(\tau_{\mathrm{UV}}^*, \tau_{\mathrm{IR}}^*)$,
+  then at every game~$n$ there exists a framework selection
+  with $\mathrm{NLR} \geq 1$.
+  The constraint is \emph{per-game, not on average}.
+  Not ``how to win more,'' but
+  ``how to not lose at all, even after paying the komi.''
+
+\item \textbf{Strong duality.}\;
+  At the free core $\bar{w} = \mu^* \in \cF$,
+  the duality gap closes to zero:
+  the primal optimum and the dual feasibility
+  $\cP \in \mathrm{Viab}(K)$ are achieved simultaneously.
+  The optimal multiplier $\lambda^*$ is the maximum komi
+  at which the King can still enforce $\mathrm{NLR} \geq 1$.
+\end{enumerate}
+
+\medskip\noindent
+\textbf{The asymmetry.}\;
+The Queen may lose individual games---her SLLN absorbs
+variance, and $\bar{w}_n \to \mu^*$ regardless.
+The King may not: a single game with
+$\mathrm{NLR} < 1$ at every scale violates the viability
+constraint, ejecting the state from $\mathrm{Viab}(K)$.
+The Queen's guarantee is \emph{statistical}
+(law of large numbers);
+the King's guarantee is \emph{existential}
+(viability kernel membership).
+
+\medskip\noindent
+\textbf{Uniqueness.}\;
+This is the \emph{only} primal-dual lemma in MOPL\@.
+There is exactly one hard constraint ($\mathrm{NLR} \geq 1$),
+hence one multiplier ($\lambda =$ komi),
+one dual variable ($\tau$),
+one primal variable ($\bar{w}$),
+and one duality gap (closing at~$\cF$).
+\end{lemma}
+
+\begin{proof}
+\textup{(i)}\;
+Standard weak duality: for any feasible
+$(\bar{w}, \lambda)$,
+$\max_{\bar{w}} \cL_{\mathrm{PD}}
+ \geq \max_\lambda \min_{\bar{w}} \cL_{\mathrm{PD}}$.
+
+\medskip\noindent
+\textup{(ii)}\;
+From Proposition~\ref{prop:viability}\textup{(ii)}:
+if $\cP_n \in \mathrm{Viab}(K)$, recursive feasibility
+gives a framework selection~$f^*$ with
+$\cP_{n+1} \in \mathrm{Viab}(K) \subseteq K$,
+hence $\mathrm{NLR}(\xi) \geq 1$ for some
+$\xi \in \cH(\cP_{n+1}, N, T)$.
+Per-game guarantee by induction on~$n$.
+
+\medskip\noindent
+\textup{(iii)}\;
+At $\bar{w} = \mu^*$ the Queen's primal is at its
+optimum (SLLN, Proposition~\ref{prop:contraction}).
+By Proposition~\ref{prop:viability}\textup{(i)},
+$\mu^* \in \mathrm{Viab}(K)$, so the dual constraint
+$\mathrm{NLR} \geq 1$ is satisfied.
+Gap $= \max \cL_{\mathrm{PD}} - \max\min \cL_{\mathrm{PD}}
+     = 0$ at this point.
+\end{proof}
+
+\begin{remark}[Viability theory: chance and necessity]%
+\label{rem:viability}
+\color{black!60}%
+Proposition~\ref{prop:viability} is an instance of
+Aubin's \emph{viability theory} (1991), which studies
+the evolution of dynamical systems under constraints.
+The core formulation translates Jacques Monod's
+\emph{Chance and Necessity} (1970) into mathematics:
+\[
+  \underbrace{x'(t) \in F(x(t))}_
+    {\text{chance (differential inclusion)}}
+  \qquad\qquad
+  \underbrace{x(t) \in K}_
+    {\text{necessity (viability constraint)}}
+\]
+The differential inclusion $x'(t) \in F(x(t))$ is an
+\emph{evolutionary engine}: at each state, there is a
+\emph{set} of possible evolutions (not a single
+deterministic trajectory).
+The constraint $x(t) \in K$ is the hard requirement
+that the evolution must never leave the allowed region.
+The viability kernel $\mathrm{Viab}(K)$ is the largest
+subset of~$K$ from which at least one evolution stays
+in~$K$ forever.
+If $\mathrm{Viab}(K) = K$: the entire environment is
+viable.
+If $\mathrm{Viab}(K) = \emptyset$: the environment is a
+\emph{repellor}---all evolutions eventually violate the
+constraints.
+
+\medskip\noindent
+The mapping to MOPL is exact:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Viability theory (Aubin)} &
+\textbf{MOPL (King)} &
+\textbf{Symbol} \\
+\midrule
+State $x(t)$ &
+  Pool state + board position &
+  $\cP$ \\
+Constraint set $K$ &
+  Not-lose region &
+  $\{\mathrm{NLR} \geq 1\}$ \\
+Evolutionary engine $F(x)$ &
+  Reachable futures &
+  $\cH(\cP, N, T)$ \\
+Viability kernel &
+  Free core &
+  $\cF$ \\
+Chance: $x'(t) \in F(x)$ &
+  Framework + move selection &
+  Stochastic \\
+Necessity: $x(t) \in K$ &
+  Not-lose at every step &
+  Hard constraint \\
+Regulation map &
+  Temperature policy &
+  $(\tau_{\mathrm{UV}}, \tau_{\mathrm{IR}})$ \\
+Repellor &
+  All paths lose at all scales &
+  Game over \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{Adaptive horizon.}\;
+If the King's current horizon $H$ reveals only losing
+rollouts ($\cP \notin K$ under~$H$), the horizon is doubled:
+$H \to 2H \to 4H \to \cdots$
+until a not-losing path is found.
+Proposition~\ref{prop:viability}\textup{(iii)} guarantees
+termination: the finite-reach bound $H^*$ ensures
+that a sufficiently long horizon always reveals a path
+to the viability kernel.
+In practice this is triggered at most once or twice
+per championship---the multi-scale lattice
+($|\Lambda_R| \times k$ independent escape routes)
+makes the viability kernel large.
+On a $19 \times 19$ Go board
+($\sim\!2 \times 10^{170}$ legal positions,
+branching factor $\sim\!250$),
+each horizon doubling multiplies escape paths
+exponentially; the probability that \emph{all} paths
+lose at \emph{all} scales vanishes unless the opponent
+is strictly dominant at every dimension.
+
+\medskip\noindent
+\textbf{The one assumption.}\;
+Everything rests on a single structural requirement:
+\emph{at least one framework has positive expected outcome
+against the current opponent} ($\exists\, i : \mu_i > 0$).
+If the opponent is strictly stronger at every scale
+under every framework, $\mathrm{Viab}(K) = \emptyset$ and
+the environment is a repellor.
+In this case MOPL correctly identifies the situation
+as unwinnable---the NLR gate fails, and training stops.
+This is not a bug; it is the honest boundary of the
+system's competence.
+\end{remark}
+
+\begin{remark}[Belief RL and the myopia principle]%
+\label{rem:belief-rl}
+\color{black!60}%
+The pool $\bar{w} \in [0,1]^k$ \emph{is} the belief state
+in the sense of partially observable RL\@.
+The true framework qualities $\mu^*$ are hidden;
+the Queen maintains the empirical estimate
+$\bar{w}_n \to \mu^*$ (SLLN)\@.
+The King plans in belief space~$[0,1]^k$,
+not in state space ($\sim\!10^{170}$ board positions).
+The viability kernel
+$\mathrm{Viab}(K) \subset [0,1]^k$
+is the set of \emph{viable beliefs}.
+
+\medskip\noindent
+\textbf{The myopia principle}
+(\begin{CJK}{UTF8}{gbsn}保持短视\end{CJK}).\;
+Keep horizon $H$ small: operate in a low-dimensional belief
+projection.  Expand $H$ only when the current belief says
+``stuck'' (all rollouts lose).
+This is belief RL's exploration--exploitation balance:
+\emph{exploit} current belief (small~$H$, cheap);
+\emph{explore} only when forced (double~$H$, expensive).
+
+\medskip\noindent
+The $10^{170}$ combinatorial guarantee ensures that
+``forced'' is rare.
+With branching factor $\sim\!250$ and
+$|\Lambda_R| \times k$ independent
+scale\,$\times$\,framework channels,
+the belief must be catastrophically wrong at every
+dimension simultaneously for the King to need horizon
+expansion.
+The one assumption ($\exists\, i : \mu_i > 0$) ensures
+this cannot persist: the Queen's SLLN convergence
+corrects any transient belief error in $O(1/\sqrt{n})$
+games.
+\end{remark}
+
+\begin{definition}[Amortized King (mean action scheduler)]%
+\label{def:amortized-king}
+\color{black!60}%
+Let $f_\theta\colon [0,1]^k \to \R^2$ be a small MLP
+trained to predict optimal log-temperatures:
+\[
+  \hat{\tau} \;=\; f_\theta(\bar{w})
+  \;\approx\; \tau^*(\bar{w})
+  \;=\; \arg\min_\tau \cL(\tau;\, \bar{w},\, M_H).
+\]
+The \emph{online distillation protocol} is:
+\begin{enumerate}[label=\textup{(\roman*)}, nosep]
+\item At game $n$: warm-start GD at
+  $\hat{\tau}_n = f_\theta(\bar{w}_n)$.
+\item Run $J \ll 100$ gradient steps $\to \tau^*_n$.
+\item Store $(\bar{w}_n, \tau^*_n)$ in a replay buffer
+  of size~$B$.
+\item Every $B$ games: update $\theta$ by SGD on
+  $\|f_\theta(\bar{w}) - \tau^*\|^2$.
+\end{enumerate}
+The NN is a \emph{learned gauge field on belief space}:
+it maps each belief $\bar{w} \in [0,1]^k$ to the
+optimal control $\tau^*(\bar{w}) \in \R^2$.
+\end{definition}
+
+\begin{remark}[Distillation as RG flow]%
+\label{rem:rg-distillation}
+\color{black!60}%
+The amortized King instantiates the RG pattern of
+model distillation:
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{RG scale} & \textbf{King's control} & \textbf{Cost} \\
+\midrule
+UV (full resolution) &
+  100-step GD from scratch &
+  $O(100 \cdot k)$ per game \\
+IR (compressed) &
+  NN forward pass + $J$-step refinement &
+  $O(k^2 + J \cdot k)$ per game \\
+\bottomrule
+\end{tabular}
+\end{center}
+As the NN converges, $J$ shrinks---the
+residual GD becomes a perturbative correction around
+the field's prediction.
+The distillation is \emph{online}: the King teaches
+itself while playing.
+The sharp test is the \emph{warm-start gap}:
+$\|\hat{\tau}_n - \tau^*_n\| \to 0$ as $n \to \infty$.
+When the gap closes, the King has learned to see
+without searching
+(\begin{CJK}{UTF8}{gbsn}不搜而视\end{CJK}).
+\end{remark}
+
 \begin{definition}[Executor assembling]\label{def:executor-assembling}
 Let $\cT = \{t_1, \ldots, t_k\}$ be a finite set of \emph{executor types},
 each with movement graph $G_{t_i}$.
@@ -3738,7 +4824,6 @@ executor to activate at each turn.
 The inner problems are independent MDPs on each $G_t$.
 The outer problem is a constrained policy on~$\Delta^{k-1}$.
 \end{definition}
-\end{minipage}}
 
 \begin{remark}[Chess as MOPL isomorphism]\label{rem:chess-iso}
 Replacing framework types with piece types yields the
@@ -3776,186 +4861,9 @@ The king and the queen are just pieces.
 They are nothing but points on $\Delta^{k-1}$.
 \end{remark}
 
-\subsection{The Drunk Game: self-dual percolation}%
-\label{sec:drunk-game}
-
-The Queen's Gambit (forward Fokker--Planck) and the King's
-Predictive Control (backward S-MPPI) are dual but distinct
-operators.
-Standard Go enforces this asymmetry: Black and White are
-assigned \emph{a priori}.
-We now construct a game in which ownership is earned
-\emph{a posteriori} by action alone, collapsing the
-forward--backward distinction.
-
-\begin{definition}[%
-\begin{CJK}{UTF8}{gbsn}醉局\end{CJK}
---- the Drunk Game]\label{def:drunk-game}
-Fix $N \in \N$.
-The \emph{Drunk Game} on the $N \times N$ lattice graph
-$G = (V, E)$, $|V| = N^2$, is defined by:
-\begin{enumerate}[label=(\roman*),nosep]
-\item \textbf{Players.}
-  Two players $\{1, 2\}$.
-  No colour is assigned to either player.
-\item \textbf{Stones.}
-  A homogeneous set $S$ with $|S| = |V|$.
-  All stones are indistinguishable.
-\item \textbf{Turn order.}
-  Each player rolls one $d_6$.
-  Strictly higher roll acts; tie means simultaneous placement.
-\item \textbf{Placement.}
-  The acting player rolls two dice
-  $\to (r, c) \in \{1, \ldots, N\}^2$ (modular).
-  If vertex $(r, c)$ is occupied, the turn is forfeit.
-\item \textbf{Closure event.}
-  If the placed stone at~$v$ completes a simple closed
-  curve $\gamma \subset G$ (a cycle in the graph),
-  the player who placed~$v$ scores
-  $|\mathrm{int}(\gamma)|$ (the number of interior
-  vertices).
-  All boundary stones of $\gamma$ are marked with that
-  player's identity.
-  Ownership is \emph{post-hoc}: it exists only after closure.
-\item \textbf{Terminal.}
-  The game ends when the board is full or both players pass.
-  Higher cumulative score wins.
-\end{enumerate}
-\end{definition}
-
-\begin{definition}[Self-dual game]\label{def:self-dual}
-A two-player game~$\Gamma$ with state evolution operator
-$\cF_t$ (forward) and value prediction operator
-$\cB_t$ (backward) is \emph{self-dual} if
-\[
-  \cF_t \;=\; \cB_{T-t}
-  \qquad \text{for all } 0 \leq t \leq T.
-\]
-In standard Go,
-$\cF_t \neq \cB_{T-t}$ because ownership is pre-assigned:
-the forward density of Black stones and the backward
-value for White are structurally different objects.
-In the Drunk Game, ownership is determined by the same
-closure event that defines the state transition,
-so $\cF_t = \cB_{T-t}$.
-\end{definition}
-
-\begin{proposition}[Forward--backward collapse]%
-\label{prop:fb-collapse}
-In the Drunk Game (Definition~\ref{def:drunk-game}),
-let $O_t \subset V$ denote the set of occupied vertices
-at time~$t$, and let $p(t) = |O_t|/|V|$ be the occupation
-density.
-The Fokker--Planck density $\rho(x, t)$
-(Proposition~\ref{prop:fpe}) and the value function
-$V(x)$ satisfy the same equation up to time reversal.
-Specifically:
-\begin{enumerate}[label=(\alph*),nosep]
-\item Below the percolation threshold $p < p_c$,
-  both $\rho$ and $V$ are diffusive:
-  $\partial_t \rho = \frac{1}{2}\Delta \rho$
-  and $V$ satisfies a backward heat equation.
-\item At $p = p_c$, both undergo phase transition
-  simultaneously: giant connected components form,
-  closure becomes inevitable, and the forward density
-  of ``stones placed'' equals the backward prediction
-  of ``who closes first.''
-\item The duality of Proposition~\ref{prop:duality}
-  collapses to identity: forward $=$ backward.
-\end{enumerate}
-\end{proposition}
-
-\begin{proof}[Proof sketch]
-The state at time~$t$ is $O_t \subset V$.
-The forward process adds vertices uniformly at random
-(dice placement).
-The backward value asks: given $O_t$, what is
-$\Pr[\text{player } i \text{ closes first}]$?
-Since stones are colourless, this probability depends
-only on $|O_t|$ and the topology of $O_t$---exactly
-the information that determines the forward
-density~$\rho$.
-The percolation threshold $p_c = |O_t|/|V|$ is the
-critical density at which giant connected components
-form on the lattice.
-At~$p_c$, closure becomes inevitable, and the forward
-evolution and backward prediction coincide as operators
-on the same state space.
-\end{proof}
-
-\begin{remark}[The duality map]\label{rem:duality-map}
-The passage from standard Go to the Drunk Game is the
-passage from asymmetric duality
-(Proposition~\ref{prop:duality}) to self-duality:
-\medskip
-\begin{center}
-\begin{tabular}{@{}lll@{}}
-\toprule
-& \textbf{Standard Go} & \textbf{%
-\begin{CJK}{UTF8}{gbsn}醉围棋\end{CJK}
-{} (Drunk Go)} \\
-\midrule
-Ownership & Colour (a priori) & Closure (a posteriori) \\
-FP vs.\ HJB & $\cF_t \neq \cB_{T-t}$ & $\cF_t = \cB_{T-t}$ \\
-Nash equilibrium & Fixed point of known game
-  & Fixed point of self-defining game \\
-Analytic analogue & $\zeta(s)$
-  & $\zeta(s)$ under $s \mapsto 1-s$
-    (functional equation) \\
-\bottomrule
-\end{tabular}
-\end{center}
-\medskip
-\noindent
-Self-duality is the game-theoretic shadow of the
-functional equation.
-The Drunk Game is to Go what $s \mapsto 1-s$ is to
-the zeta function.
-\end{remark}
-
-\begin{remark}[Komi normalisation as gauge fixing]%
-\label{rem:komi-gauge}
-Define the area-normalised komi on an $N \times N$ board:
-\[
-  \kappa(N)
-    \;=\; \max\!\bigl(1,\;
-      \mathrm{round}(7 \cdot (N/19)^2)\bigr).
-\]
-This acts as gauge fixing
-(cf.\ Definition~\ref{def:two-temp}):
-it sets the zero of the scoring metric uniformly across
-all scales.
-In the Drunk Game, where ownership is emergent, gauge
-fixing is essential---without it the scoring metric is
-scale-dependent, breaking the self-duality of
-Definition~\ref{def:self-dual}.
-\end{remark}
-
-\begin{remark}[Connection to the Euler product]%
-\label{rem:euler-drunk}
-On prime-dimensional boards
-$\Lambda_R = \{5, 7, 11, 13, 17, 19, 23, 29, 31\}$,
-each scale is one irreducible factor.
-The colourless stones are analogous to primes:
-a prime~$p$ has no ``colour''---it belongs to whichever
-number it divides.
-Ownership $=$ divisibility $=$ action, not label.
-The Euler product
-\[
-  \zeta(s)^{-1}
-    \;=\; \prod_{p}\bigl(1 - p^{-s}\bigr)
-\]
-is the partition function of the Drunk Game across
-scales: each local factor $(1 - p^{-s})$ is the
-single-prime game, and the product assembles them
-into the global game---exactly as executor assembling
-(Definition~\ref{def:executor-assembling}) composes
-single-type policies into the full scheduler.
-\end{remark}
-
 \begin{remark}[Spectral coloring as deterministic workflow]%
 \label{rem:spectral-workflow}
-This document uses seven background colours for its
+This document uses seven left-bar colours for its
 environment types, one per band of Newton's visible spectrum
 (\begin{CJK}{UTF8}{gbsn}赤橙黄绿青蓝紫\end{CJK}):
 %
@@ -4316,7 +5224,11 @@ $\mathrm{NLR}(N_k)$ & Not-lose rate at scale $N_k$ (Definition~\ref{def:nlr-gate
 $\tau_{\mathrm{UV}}$ & Scale selection temperature (Definition~\ref{def:two-temp}) \\
 $\tau_{\mathrm{IR}}$ & Move selection temperature (Definition~\ref{def:two-temp}) \\
 $\hat{V}(s)$ & S-MPPI predicted value at scale $s$ (Definition~\ref{def:smppi}) \\
-$H$ & User-set predictive horizon $\in \N$ (Definition~\ref{def:two-temp}) \\
+$\cH(\cP, N, T)$ & Rollout horizon: set of $N$ simulated futures of depth $T$ (Definition~\ref{def:horizon}) \\
+$H$ & Data window: number of most recent games the King sees (Definition~\ref{def:two-temp}) \\
+$K$ & Viability constraint: pool states with $\mathrm{NLR} \geq 1$ (Proposition~\ref{prop:viability}) \\
+$\mathrm{Viab}(K)$ & Viability kernel: largest subset of $K$ with perpetual feasibility (Proposition~\ref{prop:viability}) \\
+$f_\theta$ & Amortized King: learned warm-start for $(\tau_{\mathrm{UV}}, \tau_{\mathrm{IR}})$ (Definition~\ref{def:amortized-king}) \\
 \bottomrule
 \end{tabular}
 \end{center}
