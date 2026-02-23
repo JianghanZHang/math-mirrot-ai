@@ -2725,11 +2725,15 @@ The game has many moves but zero \emph{choices}.
 \end{remark}
 
 \begin{remark}[True victory is exact]\label{rem:exact-victory}
-Experimental finding: at 9$\times$9 (komi${}=6$),
+Experimental finding: at 9$\times$9 (komi${}=6$, standard),
 the gate passes immediately---10/10 wins, zero draws,
 zero losses.
-At 5$\times$5 (komi${}=2$), the gate \emph{fails}:
-win rate $\sim 20\%$ despite 160 training games.
+At 5$\times$5 (komi${}=2$, area-normalised), the gate
+\emph{fails}: win rate $\sim 20\%$ despite 160 training games.
+Note: the expanding-lattice protocol
+(Section~\ref{sec:queens-gambit}) uses area-normalised
+komi $\kappa(N) = \max(1, \mathrm{round}(7(N/19)^2))$
+throughout; this figure used the standard 9$\times$9 komi.
 The lesson: not-lose is a \emph{calibration} condition.
 The same pool that dominates at one scale fails at another
 because komi must exactly balance first-move advantage.
@@ -2901,7 +2905,9 @@ I am the world's smallest Champion.
   \node[right,font=\small] at (9,1.5) {Gate: 10/10};
   \node[right,font=\small] at (9,0.5) {NLR $= 100\%$};
 \end{tikzpicture}
-\caption{The championship board: 9$\times$9 with komi${}=6$.
+\caption{The championship board: 9$\times$9 with komi${}=6$
+(standard 9$\times$9 komi; the expanding-lattice protocol
+uses area-normalised $\kappa(9) = 2$).
 MOPL (\textbullet) plays Black and White on alternate games.
 The not-lose gate passes at this scale with 10/10 wins
 before championship begins.
