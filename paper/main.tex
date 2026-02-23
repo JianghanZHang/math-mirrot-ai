@@ -2827,41 +2827,87 @@ Complexity did not disappear.
 It changed representation.
 \end{remark}
 
-\begin{definition}[Transcommutation and redundancy threshold]%
+\begin{definition}[Transcommutation (free energy preservation)]%
 \label{def:transcommutation}
-Two representations $R_1, R_2$ of a system~$S$ are
-\emph{transcommutational} if there exists an invariant~$I$
-such that
+Let $S$ be a system with \emph{free energy}
+(Jaynes~\cite{Jaynes57}):
 \[
-  I(R_1) \;=\; I(R_2)
-  \qquad\text{and}\qquad
-  \Delta(R_1) \;\times\; \Delta(R_2)
-  \;\geq\;
-  \mathrm{const}(I).
+  F(\tau) \;=\; \min_p \;\bigl[\,
+    \underbrace{\mathbb{E}_p[\,E\,]}_{\text{energy (order)}}
+    \;+\;
+    \tau\,
+    \underbrace{H(p)}_{\text{entropy (disorder)}}
+  \,\bigr].
 \]
-The \emph{redundancy threshold} is defined by this invariant:
-\begin{itemize}[nosep]
-\item \textbf{Below threshold} (transcommutational):
-  $R_1$ and $R_2$ differ only in encoding.
-  The invariant~$I$ is preserved.
-  The choice between them is a \emph{convention}, not a
-  semantic claim.
-  Example: Standard Go $\leftrightarrow$ Drunk Go
-  (topology preserved); ``colour'' $\leftrightarrow$ ``color''
-  (meaning preserved).
-\item \textbf{Above threshold} (semantic contradiction):
-  $I(R_1) \neq I(R_2)$.
-  The invariant itself has changed.
-  This is a real inconsistency that must be resolved.
-  Example: describing ``background colours'' when the
-  system uses left bars; truncating primes in an Euler
-  product (the library burns).
-\end{itemize}
+A \emph{transcommutation} is a transformation $T$ that
+preserves~$F$ while redistributing the energy--entropy
+decomposition:
+\[
+  F(T \cdot S) \;=\; F(S),
+  \qquad
+  \mathbb{E}[E] \;\leftrightarrow\; \tau\, H.
+\]
+The uncertainty principle follows:
+\[
+  \Delta(\text{energy}) \;\times\; \Delta(\text{entropy})
+  \;\geq\; \mathrm{const}(F).
+\]
+At the \emph{self-dual point}
+($\mathbb{E}[E] = \tau H$),
+the transformation is an involution
+and the system is its own transcommutation.
+
+\medskip\noindent
+\textbf{Instances.}\;
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Domain} & \textbf{Conjugate pair} &
+\textbf{Transform} & \textbf{Self-dual point} \\
+\midrule
+Stat.\ mech.\ \cite{KW41} &
+  high-$T$ $\leftrightarrow$ low-$T$ &
+  Kramers--Wannier &
+  $T_c$ (critical) \\
+Thermodynamics &
+  $(S,\, T)$ &
+  Legendre: $F = E - TS$ &
+  $E = TS$ \\
+Quantum mech.\ &
+  $(x,\, p)$ &
+  Fourier &
+  Gaussian ($\Delta x = \Delta p$) \\
+This paper &
+  strategy $\leftrightarrow$ randomness &
+  Drunk Game &
+  $p = \tfrac{1}{2}$ (fair coin) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \noindent
-The threshold \emph{is} transcommutation.
-If two descriptions are related by a basis change,
-normalise as preference.
-If they are not, fix the contradiction.
+The word is literal:
+\emph{trans-} (across) $+$ \emph{commutation} ($[A, B]$).
+The map goes from one side of the commutator
+to the other, preserving the commutator itself.
+In each instance above, the non-commutativity of the
+conjugate pair is the structure that forces the
+uncertainty bound.
+
+\medskip\noindent
+\textbf{Redundancy threshold.}\;
+The free energy defines a threshold for consistency:
+\begin{itemize}[nosep]
+\item \textbf{Below} (transcommutational):
+  $F(R_1) = F(R_2)$.
+  The representations differ only in encoding.
+  Convention, not contradiction.
+\item \textbf{Above} (semantic):
+  $F(R_1) \neq F(R_2)$.
+  The invariant itself has changed.
+  Must be resolved.
+\end{itemize}
 \end{definition}
 
 \begin{definition}[Self-dual game]\label{def:self-dual}
@@ -5136,6 +5182,17 @@ B.~Boots, and E.~A. Theodorou.
 reinforcement learning.
 \newblock In \emph{IEEE International Conference on Robotics
 and Automation (ICRA)}, pp.~1714--1721, 2017.
+
+\bibitem{KW41}
+H.~A.~Kramers and G.~H.~Wannier.
+\newblock Statistics of the two-dimensional ferromagnet.
+Part~I.
+\newblock \emph{Physical Review}, 60(3):252--262, 1941.
+
+\bibitem{Jaynes57}
+E.~T.~Jaynes.
+\newblock Information theory and statistical mechanics.
+\newblock \emph{Physical Review}, 106(4):620--630, 1957.
 
 \end{thebibliography}
 
