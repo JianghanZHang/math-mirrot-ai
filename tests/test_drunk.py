@@ -378,15 +378,26 @@ class TestDrunkGame:
         assert r1["winner"] in (0, 1, 2)
         assert r2["winner"] in (0, 1, 2)
 
-    def test_roll_turn_order(self):
-        """Turn order should return valid players."""
+    def test_fixed_alternation(self):
+        """Turn order should alternate B-W-B-W (player 1, 2, 1, 2, ...)."""
         game = DrunkGame(size=5, seed=42)
-        first, second, sim = game.roll_turn_order()
-        assert first in (1, 2)
-        assert second in (1, 2)
-        assert isinstance(sim, bool)
-        if not sim:
-            assert first != second
+        players = []
+        for _ in range(6):
+            turn = game.play_turn()
+            if turn.get("terminal"):
+                break
+            players.append(turn["player"])
+        # Should alternate: 1, 2, 1, 2, ...
+        for i, p in enumerate(players):
+            assert p == (i % 2) + 1, f"Turn {i}: expected {(i % 2) + 1}, got {p}"
+
+    def test_coin_flip(self):
+        """Coin flip should return bool. Over many flips, roughly 50/50."""
+        game = DrunkGame(size=5, seed=42)
+        results = [game.coin_flip() for _ in range(1000)]
+        # Should be roughly 50/50 (within 10% tolerance)
+        play_rate = sum(results) / len(results)
+        assert 0.4 < play_rate < 0.6, f"Coin flip bias: {play_rate}"
 
     def test_roll_placement_on_empty_board(self):
         """Roll placement returns a valid intersection."""
@@ -408,8 +419,8 @@ class TestDrunkGame:
     def test_terminal_on_full_board(self):
         """Game should terminate when board fills up."""
         game = DrunkGame(size=3, seed=42)
-        result = game.play_game(max_turns=100)
-        # 3x3 = 9 spots, should fill up eventually
+        result = game.play_game(max_turns=200)
+        # 3x3 = 9 spots, should fill up or both skip eventually
         assert result["moves"] <= 9
 
     def test_winner_by_score(self):

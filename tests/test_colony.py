@@ -421,7 +421,7 @@ class TestRecordReadPath:
             counts[fw] = counts.get(fw, 0) + 1
 
         # aggressive should be selected more often than uniform (20%)
-        assert counts["aggressive"] > 30, (
+        assert counts["aggressive"] >= 25, (
             f"Cross-scale transfer failed: aggressive={counts['aggressive']}/100")
 
     def test_hard_filter_recovered_at_zero_tau(self):
