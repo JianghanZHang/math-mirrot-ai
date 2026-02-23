@@ -2910,6 +2910,44 @@ The free energy defines a threshold for consistency:
 \end{itemize}
 \end{definition}
 
+\begin{remark}[Primon Gas: $\zeta(s)$ as partition function]%
+\label{rem:primon-gas}
+The Euler product
+$\zeta(s)^{-1} = \prod_p(1-p^{-s})$
+used throughout this paper
+(Remarks~\ref{rem:lattice-criterion}
+and~\ref{rem:euler-vision})
+is a statement of statistical independence.
+Assign to each prime~$p$ a bosonic oscillator with energy
+$\varepsilon_p = \log p$ and Hamiltonian
+\[
+  H \;=\; \sum_{p\;\mathrm{prime}} (\log p)\;
+  a_p^\dagger\, a_p.
+\]
+The partition function at inverse temperature~$s$ is
+\[
+  Z(s)
+  \;=\; \mathrm{Tr}\bigl(e^{-sH}\bigr)
+  \;=\; \prod_{p}\,\sum_{k=0}^{\infty} p^{-sk}
+  \;=\; \prod_{p} \frac{1}{1 - p^{-s}}
+  \;=\; \zeta(s).
+\]
+This is the \emph{Primon Gas}~\cite{Julia90}:
+unique prime factorisation
+$\Leftrightarrow$
+statistical independence of oscillators.
+The functional equation
+$\xi(s) = \xi(1-s)$
+is a transcommutation
+(Definition~\ref{def:transcommutation}):
+it preserves the completed free energy~$\xi$
+while swapping $s \leftrightarrow 1-s$
+(high-temperature $\leftrightarrow$ low-temperature,
+cf.\ Kramers--Wannier~\cite{KW41}).
+The critical line $\mathrm{Re}(s) = \tfrac{1}{2}$
+is the self-dual point of this duality.
+\end{remark}
+
 \begin{definition}[Self-dual game]\label{def:self-dual}
 A two-player game~$\Gamma$ with state evolution operator
 $\cF_t$ (forward) and value prediction operator
@@ -5193,6 +5231,12 @@ Part~I.
 E.~T.~Jaynes.
 \newblock Information theory and statistical mechanics.
 \newblock \emph{Physical Review}, 106(4):620--630, 1957.
+
+\bibitem{Julia90}
+B.~Julia.
+\newblock Statistical theory of numbers.
+\newblock In \emph{Number Theory and Physics},
+Springer Proceedings in Physics, vol.~47, pp.~276--293, 1990.
 
 \end{thebibliography}
 
