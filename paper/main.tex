@@ -2056,7 +2056,7 @@ then recovery---is the visual signature of $S^*$.
 
 \textbf{Validation status:} specific win rates to be filled after
 championship run on the 9-prime lattice with area-normalized komi
-$\kappa(N) = \max(1, \lceil 7(N/19)^2 \rceil)$.
+$\kappa(N) = \max(1, \mathrm{round}(7(N/19)^2))$.
 \end{remark}
 
 \begin{remark}[Invented policy]\label{rem:invented}
@@ -2121,7 +2121,7 @@ internal consistency.
   Dashed: vs Random opponent.
   Red vertical lines mark scale transitions on the prime lattice
   $\Lambda_R = \{5,7,11,13,17,19,23,29,31\}$.
-  Komi area-normalized: $\kappa(N) = \max(1, \lceil 7(N/19)^2 \rceil)$.
+  Komi area-normalized: $\kappa(N) = \max(1, \mathrm{round}(7(N/19)^2))$.
   \textbf{Placeholder}---data to be filled after validated championship run.}
 \label{fig:sawtooth}
 \end{minipage}}% end fcolorbox
@@ -3351,7 +3351,7 @@ Pool update & running average &
   Bayesian posterior, $\mathrm{Beta}(1,1)$ \\
 Pool sampling & Boltzmann softmax &
   max-entropy distribution (unique) \\
-Komi & $\max(1, \lfloor 7(N/19)^2 \rceil)$ &
+Komi & $\max(1, \mathrm{round}(7(N/19)^2))$ &
   area-normalised to $19{\times}19$ \\
 Frameworks & 5 Go strategies &
   domain-determined \\
@@ -4939,21 +4939,23 @@ games.
 \label{def:amortized-king}
 \color{black!60}%
 Let $f_\theta\colon [0,1]^k \to \R^2$ be a small MLP
-trained to predict optimal log-temperatures:
+trained to predict optimal log-temperatures
+($\tau = e^\theta$, cf.\ Definition~\ref{def:two-temp}):
 \[
-  \hat{\tau} \;=\; f_\theta(\bar{w})
-  \;\approx\; \tau^*(\bar{w})
-  \;=\; \arg\min_\tau \cL(\tau;\, \bar{w},\, M_H).
+  \hat{\theta} \;=\; f_\theta(\bar{w})
+  \;\approx\; \theta^*(\bar{w})
+  \;=\; \arg\min_\theta \cL(e^\theta;\, \bar{w},\, M_H).
 \]
 The \emph{online distillation protocol} is:
 \begin{enumerate}[label=\textup{(\roman*)}, nosep]
 \item At game $n$: warm-start GD at
-  $\hat{\tau}_n = f_\theta(\bar{w}_n)$.
-\item Run $J \ll 100$ gradient steps $\to \tau^*_n$.
-\item Store $(\bar{w}_n, \tau^*_n)$ in a replay buffer
+  $\hat{\theta}_n = f_\theta(\bar{w}_n)$.
+\item Run $J \ll 100$ gradient steps $\to \theta^*_n$.
+\item Store $(\bar{w}_n, \theta^*_n)$ in a replay buffer
   of size~$B$.
-\item Every $B$ games: update $\theta$ by SGD on
-  $\|f_\theta(\bar{w}) - \tau^*\|^2$.
+\item Every $B_u$ games ($B_u \leq B$): update $\theta$
+  by SGD on
+  $\|f_\theta(\bar{w}) - \theta^*\|^2$.
 \end{enumerate}
 The NN is a \emph{learned gauge field on belief space}:
 it maps each belief $\bar{w} \in [0,1]^k$ to the

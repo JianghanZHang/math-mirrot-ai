@@ -160,8 +160,8 @@ class Colony:
             self.records.append(record)
 
             # Update pool (per-framework lock protects this)
-            outcome_for_pool = 1.0 if game["outcome"] > 0 else (
-                0.5 if game["outcome"] == 0 else 0.0)
+            # 1-bit outcome: win (1.0) or not-win (0.0)
+            outcome_for_pool = 1.0 if game["outcome"] > 0 else 0.0
             self.pool.update(game["framework"], outcome_for_pool)
 
             agent_results.append({

@@ -1,12 +1,18 @@
 """Drunk Go (醉围棋): randomized Go on NxN lattice with closure scoring.
 
-No colors. All stones identical. Placement by dice. Score by enclosure.
-The board is the same lattice as standard Go, but the game is fundamentally
-different: ownership emerges from topology (closed curves), not territory.
+Transcommutation: complexity ↔ randomness.
+Same board, same B-W-B-W turn order as standard Go.
+Three strategic decisions replaced by random variables:
+  - WHO plays: unchanged (B-W alternation, deterministic)
+  - WHETHER to play: coin flip (Bernoulli(1/2)), not strategic
+  - WHERE to place: uniform random over empty intersections, not strategic
 
-Key difference from standard Go:
-  - Standard Go: stones have colors, territory = enclosed empty space
-  - Drunk Go: stones are colorless, score = interior of closed curves
+Scoring: closure topology (who placed the closing stone), not territory.
+Ownership emerges from action (closure event), not from label (stone color).
+
+The 50/50 coin flip is the self-dual point:
+  P(occupied) = P(empty) = 1/2.
+  Forward density = backward prediction.
 
 Closure detection algorithm:
   When a new stone is placed, check if it creates a cycle in the 4-connected
@@ -233,145 +239,6 @@ class DrunkBoard:
 
         return components
 
-    def find_closures(self, row: int, col: int) -> list[tuple[set[tuple[int, int]], set[tuple[int, int]]]]:
-        """Find simple closed curves through the newly placed stone.
-
-        A closure is a cycle in the 4-connected adjacency graph of placed
-        stones that encloses at least one interior vertex.
-
-        Algorithm:
-          1. Build the local connected component of stones containing (row, col).
-          2. Check if removing (row, col) disconnects any pair of its
-             stone-neighbors. If two neighbors remain connected without
-             (row, col), there is a cycle.
-          3. For each cycle found, compute the enclosed interior via
-             flood fill from outside the boundary.
-
-        Returns:
-            List of (boundary_set, interior_set) pairs.
-        """
-        # Get all stone neighbors of the newly placed stone
-        stone_neighbors = [
-            (nr, nc) for nr, nc in self._neighbors(row, col)
-            if self.grid[nr][nc]
-        ]
-
-        if len(stone_neighbors) < 2:
-            # Need at least 2 stone neighbors to form a cycle
-            return []
-
-        # Get the connected component of stones containing (row, col)
-        component = self._stone_component(row, col)
-
-        if len(component) < 4:
-            # Minimum cycle in grid graph is 4 stones (2x2 square)
-            return []
-
-        # Find all minimal enclosed regions.
-        # Strategy: temporarily consider the stones in the component as
-        # a "wall". Flood fill from the boundary of the bounding box.
-        # Any non-stone vertex NOT reached = interior of some closure.
-        closures = self._find_enclosed_regions(component)
-
-        return closures
-
-    def _stone_component(self, row: int, col: int) -> set[tuple[int, int]]:
-        """BFS to find connected component of stones containing (row, col)."""
-        if not self.grid[row][col]:
-            return set()
-
-        visited: set[tuple[int, int]] = set()
-        queue = deque([(row, col)])
-        visited.add((row, col))
-
-        while queue:
-            r, c = queue.popleft()
-            for nr, nc in self._neighbors(r, c):
-                if (nr, nc) not in visited and self.grid[nr][nc]:
-                    visited.add((nr, nc))
-                    queue.append((nr, nc))
-
-        return visited
-
-    def _find_enclosed_regions(
-        self, stone_set: set[tuple[int, int]]
-    ) -> list[tuple[set[tuple[int, int]], set[tuple[int, int]]]]:
-        """Find regions enclosed by a set of stones.
-
-        Flood fill from the board boundary through non-stone vertices.
-        Any non-stone vertex not reached is enclosed (interior).
-        Then decompose interior into connected components, and for each,
-        find its stone boundary.
-
-        Returns list of (boundary, interior) pairs where interior is
-        non-empty.
-        """
-        # Flood fill from outside: mark all non-stone vertices reachable
-        # from the board boundary
-        outside: set[tuple[int, int]] = set()
-        queue: deque[tuple[int, int]] = deque()
-
-        # Seed: all non-stone boundary vertices
-        for r in range(self.size):
-            for c in range(self.size):
-                if (r == 0 or r == self.size - 1 or
-                        c == 0 or c == self.size - 1):
-                    if not self.grid[r][c]:
-                        if (r, c) not in outside:
-                            outside.add((r, c))
-                            queue.append((r, c))
-
-        while queue:
-            r, c = queue.popleft()
-            for nr, nc in self._neighbors(r, c):
-                if (nr, nc) not in outside and not self.grid[nr][nc]:
-                    outside.add((nr, nc))
-                    queue.append((nr, nc))
-
-        # Interior: non-stone vertices NOT in outside
-        interior_all: set[tuple[int, int]] = set()
-        for r in range(self.size):
-            for c in range(self.size):
-                if not self.grid[r][c] and (r, c) not in outside:
-                    interior_all.add((r, c))
-
-        if not interior_all:
-            return []
-
-        # Decompose interior into connected components
-        closures = []
-        visited: set[tuple[int, int]] = set()
-
-        for seed in interior_all:
-            if seed in visited:
-                continue
-
-            # BFS to find this interior component
-            component: set[tuple[int, int]] = set()
-            comp_queue: deque[tuple[int, int]] = deque([seed])
-            component.add(seed)
-            visited.add(seed)
-
-            while comp_queue:
-                r, c = comp_queue.popleft()
-                for nr, nc in self._neighbors(r, c):
-                    if (nr, nc) in interior_all and (nr, nc) not in visited:
-                        visited.add((nr, nc))
-                        component.add((nr, nc))
-                        comp_queue.append((nr, nc))
-
-            # Find boundary: stone vertices adjacent to this interior component
-            boundary: set[tuple[int, int]] = set()
-            for ir, ic in component:
-                for nr, nc in self._neighbors(ir, ic):
-                    if self.grid[nr][nc]:
-                        boundary.add((nr, nc))
-
-            if boundary and component:
-                closures.append((boundary, component))
-
-        return closures
-
     def compute_interior(self, boundary: set[tuple[int, int]]) -> set[tuple[int, int]]:
         """Given a closed boundary of stones, compute enclosed interior points.
 
@@ -461,38 +328,48 @@ class DrunkBoard:
 # ── Game Manager ──────────────────────────────────────────
 
 class DrunkGame:
-    """Game manager for Drunk Go with dice rolling.
+    """Game manager for Drunk Go.
+
+    Transcommutation of standard Go:
+      - WHO: B-W-B-W fixed alternation (deterministic, same as standard Go)
+      - WHETHER: fair coin flip (Bernoulli(1/2)) — play or skip
+      - WHERE: uniform random over empty intersections
+      - SCORING: closure topology (who placed the closing stone)
 
     Turn structure:
-      1. Both players roll d6 for turn order (higher goes first, tie = simultaneous)
-      2. Active player rolls for random placement (uniform over empty intersections)
-      3. If spot is occupied, forfeit turn
+      1. Current player (B or W, alternating) flips coin: play or skip
+      2. If play: uniform random placement over empty intersections
+      3. If spot is occupied (shouldn't happen with uniform-over-empty): forfeit
       4. Check for closures, score interior
-      5. Game ends when board is full or both players pass consecutively
+      5. Alternate to other player
+      6. Game ends when board is full or both players skip in succession
+
+    The 50/50 coin flip is the self-dual point:
+      P(play) = P(skip) = 1/2 → symmetric occupation measure.
     """
 
     def __init__(self, size: int = 9, seed: Optional[int] = None) -> None:
         self.board = DrunkBoard(size)
         self.rng = random.Random(seed)
         self.turn_log: list[dict[str, Any]] = []
-        self.consecutive_passes: int = 0
+        self.consecutive_skips: int = 0
+        self.current_player: int = 1  # 1 = Black, 2 = White
 
-    def roll_turn_order(self) -> tuple[int, int, bool]:
-        """Both players roll d6. Returns (first_player, second_player, simultaneous).
+    def coin_flip(self) -> bool:
+        """Fair coin: True = play, False = skip. p = 1/2.
 
-        Tie = simultaneous placement (both act in same sub-turn).
+        This is the WHETHER axis of the transcommutation.
+        Standard Go: strategic decision (pass is rare, deliberate).
+        Drunk Go: Bernoulli(1/2), independent of game state.
         """
-        d1 = self.rng.randint(1, 6)
-        d2 = self.rng.randint(1, 6)
-        if d1 > d2:
-            return 1, 2, False
-        elif d2 > d1:
-            return 2, 1, False
-        else:
-            return 1, 2, True  # tie = simultaneous
+        return self.rng.random() < 0.5
 
     def roll_placement(self) -> Optional[tuple[int, int]]:
-        """Roll for random placement: uniform over empty intersections.
+        """Uniform random placement over empty intersections.
+
+        This is the WHERE axis of the transcommutation.
+        Standard Go: strategic choice from ~10^170 positions.
+        Drunk Go: uniform random over remaining empty intersections.
 
         Returns None if board is full.
         """
@@ -502,79 +379,73 @@ class DrunkGame:
         return self.rng.choice(empty)
 
     def play_turn(self) -> dict[str, Any]:
-        """Play one turn: determine order, roll placement, place, check closure.
+        """Play one turn: one player, coin flip, maybe place.
 
+        Fixed B-W-B-W alternation. Each turn is one player.
         Returns turn record.
         """
         if self.board.is_full():
             return {"terminal": True, "reason": "board_full"}
 
-        first, second, simultaneous = self.roll_turn_order()
+        player = self.current_player
+        plays = self.coin_flip()
 
         turn_record: dict[str, Any] = {
             "turn": len(self.turn_log) + 1,
-            "order": (first, second),
-            "simultaneous": simultaneous,
-            "actions": [],
+            "player": player,
+            "coin": plays,
+            "action": None,
         }
 
-        if simultaneous:
-            # Both players place simultaneously
-            for player in [first, second]:
-                action = self._player_action(player)
-                turn_record["actions"].append(action)
+        if plays:
+            # Coin says play: random placement
+            spot = self.roll_placement()
+            if spot is None:
+                turn_record["action"] = {
+                    "player": player, "passed": True,
+                    "reason": "board_full",
+                }
+                self.consecutive_skips += 1
+            else:
+                row, col = spot
+                result = self.board.place_stone(row, col, player)
+                action: dict[str, Any] = {
+                    "player": player, "row": row, "col": col,
+                }
+                action.update(result)
+                turn_record["action"] = action
+                if result.get("forfeited", False):
+                    self.consecutive_skips += 1
+                else:
+                    self.consecutive_skips = 0
         else:
-            # Sequential: first player, then second player
-            for player in [first, second]:
-                action = self._player_action(player)
-                turn_record["actions"].append(action)
+            # Coin says skip
+            turn_record["action"] = {"player": player, "skipped": True}
+            self.consecutive_skips += 1
 
-        # Check consecutive passes
-        all_forfeited = all(
-            a.get("forfeited", False) or a.get("passed", False)
-            for a in turn_record["actions"]
-        )
-        if all_forfeited:
-            self.consecutive_passes += 1
-        else:
-            self.consecutive_passes = 0
+        # Alternate: B -> W -> B -> W
+        self.current_player = 3 - self.current_player
 
-        if self.consecutive_passes >= 2:
+        # Terminal: both players skipped in succession
+        if self.consecutive_skips >= 2:
             turn_record["terminal"] = True
-            turn_record["reason"] = "consecutive_passes"
+            turn_record["reason"] = "consecutive_skips"
         else:
             turn_record["terminal"] = False
 
         self.turn_log.append(turn_record)
         return turn_record
 
-    def _player_action(self, player: int) -> dict[str, Any]:
-        """Single player action: roll and place."""
-        spot = self.roll_placement()
-        if spot is None:
-            return {"player": player, "passed": True, "reason": "board_full"}
-
-        row, col = spot
-        result = self.board.place_stone(row, col, player)
-
-        action: dict[str, Any] = {
-            "player": player,
-            "row": row,
-            "col": col,
-        }
-        action.update(result)
-        return action
-
     def is_terminal(self) -> bool:
         """Game over?"""
         if self.board.is_full():
             return True
-        if self.consecutive_passes >= 2:
+        if self.consecutive_skips >= 2:
             return True
         return False
 
     def winner(self) -> int:
-        """0 = draw, 1 = player 1 wins, 2 = player 2 wins."""
+        """0 = draw, 1 = Black wins, 2 = White wins."""
         s1 = self.board.scores[1]
         s2 = self.board.scores[2]
         if s1 > s2:
@@ -588,11 +459,11 @@ class DrunkGame:
         """Play a complete game. Returns game record.
 
         Args:
-            max_turns: safety limit (0 = no limit, use board size squared)
+            max_turns: safety limit (0 = no limit, 2 * N^2 single-player turns)
         """
         if max_turns <= 0:
-            # Each turn places up to 2 stones, so N*N/2 turns is generous
-            max_turns = self.board.size * self.board.size
+            # Each turn is one player action, so 2*N^2 is generous
+            max_turns = 2 * self.board.size * self.board.size
 
         for _ in range(max_turns):
             turn = self.play_turn()
@@ -672,8 +543,8 @@ def demo_game(size: int = 9, seed: Optional[int] = None,
         print(f"{'=' * 50}")
         print(f"  DRUNK GO (醉围棋) -- {size}x{size}")
         print(f"{'=' * 50}")
-        print(f"  Rules: No colors. Dice placement. Score by enclosure.")
-        print(f"  Komi: {drunk_komi(size)} (area-normalized)")
+        print(f"  Rules: B-W alternation. Coin flip + random placement.")
+        print(f"  Scoring: closure topology. Komi: {drunk_komi(size)}")
         print()
 
     result = game.play_game()
