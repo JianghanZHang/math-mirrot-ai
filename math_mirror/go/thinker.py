@@ -21,17 +21,21 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def _retrieve_winning_openings(records, framework, board_size, k=3):
+def _retrieve_winning_openings(records, framework, board_size, tau_size=4.0, k=3):
     """Retrieve opening moves from winning games with this framework."""
+    import math
     if records is None or len(records) == 0:
         return []
-    winning = [r for r in records.filter_by_framework(framework)
-               if r.outcome > 0 and r.board_size == board_size]
+    fw_records = records.filter_by_framework(framework)
+    winning = [(r, math.exp(-abs(r.board_size - board_size) / tau_size))
+               for r in fw_records if r.outcome > 0]
     if not winning:
         return []
-    recent = winning[-k:]
+    # Sort by weight (prefer same-size), take top k
+    winning.sort(key=lambda x: x[1], reverse=True)
+    recent = winning[:k]
     openings = []
-    for r in recent:
+    for r, w in recent:
         from .transcriber import _decode_move
         moves = [_decode_move(m) for m in r.moves[:4]]
         openings.append(moves)
@@ -63,6 +67,10 @@ class RuleThinker(Thinker):
     to framework selection and move evaluation.
     """
 
+    def __init__(self, temperature: float = 1.0, tau_size: float = 4.0) -> None:
+        self.temperature = temperature
+        self.tau_size = tau_size
+
     def analyze(self, board: Board, context: str) -> str:
         phase = self._detect_phase(board)
         return f"Phase: {phase}. Context: {context}."
@@ -81,20 +89,20 @@ class RuleThinker(Thinker):
 
         # Opening: sample from pool (exploration)
         if phase == "opening":
-            return pool.sample(temperature=1.0)
+            return pool.sample(temperature=self.temperature)
 
         # Middlegame: prefer aggressive or influence
         if phase == "middlegame":
             for name in ["aggressive", "influence"]:
                 if name in pool.frameworks:
                     return name
-            return pool.sample(temperature=0.5)
+            return pool.sample(temperature=self.temperature * 0.5)
 
         # Endgame: prefer territorial or reduction
         for name in ["territorial", "reduction"]:
             if name in pool.frameworks:
                 return name
-        return pool.sample(temperature=0.5)
+        return pool.sample(temperature=self.temperature * 0.5)
 
     def _pick_with_records(self, pool, records, board_size):
         """Blend pool win_rate with record bonus for framework selection."""
@@ -104,19 +112,19 @@ class RuleThinker(Thinker):
         names = list(pool.frameworks.keys())
         win_rates = [pool.frameworks[n]["win_rate"] for n in names]
 
-        # Count wins per framework from records
-        win_counts: dict[str, int] = {}
+        # Soft cross-scale weighting: records from nearby sizes contribute
+        win_counts: dict[str, float] = {}
         for r in records.get_all():
-            if r.outcome > 0 and r.board_size == board_size:
-                win_counts[r.framework] = win_counts.get(r.framework, 0) + 1
+            if r.outcome > 0:
+                size_weight = math.exp(-abs(r.board_size - board_size) / self.tau_size)
+                win_counts[r.framework] = win_counts.get(r.framework, 0.0) + size_weight
 
-        # Record bonus: log(1 + win_count) scaled by 0.3
-        bonuses = [0.3 * math.log(1 + win_counts.get(n, 0)) for n in names]
+        # Record bonus: log(1 + weighted_count) scaled by 0.3
+        bonuses = [0.3 * math.log(1 + win_counts.get(n, 0.0)) for n in names]
 
         # Boltzmann weights: exp((log(wr) + bonus) / T)
-        temperature = 1.0
         clamped = [max(0.01, min(0.99, wr)) for wr in win_rates]
-        log_weights = [(math.log(wr) + b) / temperature
+        log_weights = [(math.log(wr) + b) / self.temperature
                        for wr, b in zip(clamped, bonuses)]
         max_lw = max(log_weights)
         exp_weights = [math.exp(lw - max_lw) for lw in log_weights]

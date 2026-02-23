@@ -3142,6 +3142,25 @@ This is the correct information boundary:
 learning \emph{what works} (exploitation signal)
 without copying \emph{how the opponent plays},
 which would destroy strategic diversity across the colony.
+
+\medskip\noindent
+\textbf{The broken lens.}\;
+The symbolic read path currently filters records by an exact
+match on board size (\texttt{board\_size == board\_size}).
+This is a hard cutoff: $\tau_{\text{size}} = 0$, infinite
+sharpness.
+Records from a $9\times 9$ board are invisible when playing
+$13\times 13$, even though the opening theory transfers.
+The correct formulation replaces the hard filter with a soft
+Boltzmann weight:
+$w_{\text{size}}(n, n') \propto \exp\bigl(-|n - n'| /
+\tau_{\text{size}}\bigr)$,
+so that records from nearby board sizes contribute with
+geometrically decaying relevance.
+Making $\tau_{\text{size}}$ adaptive---part of the telescope
+$(\tau_{\text{UV}}, \tau_{\text{IR}})$---resolves the
+cross-scale transfer problem
+(Remark~\ref{rem:telescope}).
 \end{remark}
 \end{minipage}}
 
@@ -3192,7 +3211,10 @@ which would destroy strategic diversity across the colony.
   \textcolor{green!50!black}{\textbf{Green}}: scalar channel
     (1-bit outcome, fast).
   Dashed grey: the opponent is outside the pheromone
-  loop---the queen observes results, not methods.}%
+  loop---the queen observes results, not methods.
+  The King's temperatures $(\tau_{\text{UV}}, \tau_{\text{IR}})$
+  control the resolution of both channels
+  (Remark~\ref{rem:telescope}).}%
 \label{fig:io-circuit}
 \end{figure}
 
@@ -3259,8 +3281,270 @@ $2^{d^2}$ functions) for \emph{verifiability}
 (every MOPL decision has a finite, readable proof trail).
 Remark~\ref{rem:zero-param}: zero free parameters.
 This remark: zero hidden knowledge.
+The data grows without bound; only the telescope learns
+(Remark~\ref{rem:telescope}).
 \end{remark}
 \end{minipage}}
+
+\medskip
+\noindent
+\colorbox{blue!8}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\begin{remark}[Record everything, learn to search]%
+\label{rem:telescope}
+\color{blue!50!black}%
+The preceding remark lists \emph{what} MOPL stores.
+This remark clarifies \emph{how} the stored knowledge is used.
+The metaphor is astronomical:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Astronomy} & \textbf{MOPL} & \textbf{Symbol} \\
+\midrule
+Night sky (all photons) &
+  \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK} store &
+  $\Phi$ \\
+Star catalog (compressed) &
+  Pool (running averages) &
+  $\Pi$ \\
+Telescope (resolution \& pointing) &
+  Temperatures &
+  $(\tau_{\text{UV}},\, \tau_{\text{IR}})$ \\
+Observer (reads through telescope) &
+  Thinker &
+  LLM context \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The store~$\Phi$ is an ever-growing archive of
+\begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}.
+It is \emph{not} a training set---no gradient is ever
+computed over it.
+It is the raw sky: every photon (game record) is deposited
+faithfully, and none is discarded.
+The pool~$\Pi$ compresses this sky into a catalog of five
+running averages---a lossy but sufficient summary of which
+frameworks win.
+
+\medskip\noindent
+The two temperatures $(\tau_{\text{UV}}, \tau_{\text{IR}})$
+are the \emph{telescope}.
+They control what the observer (Thinker) sees:
+\begin{itemize}
+\item $\tau_{\text{UV}}$ (exploration temperature):
+  controls the \emph{resolution}---how sharply the pool
+  concentrates on the current best framework.
+  High~$\tau_{\text{UV}}$: wide field, many frameworks
+  visible.
+  Low~$\tau_{\text{UV}}$: narrow field, only the dominant
+  framework survives.
+\item $\tau_{\text{IR}}$ (exploitation temperature):
+  controls the \emph{pointing}---how aggressively the
+  Thinker reads past records for the selected framework.
+\end{itemize}
+
+\noindent
+The structural parallel with the Riemann zeta function is
+worth noting.
+Pool sampling assigns probability
+$P(f_i) \propto \bar{w}_i^{1/\tau}$;
+the Dirichlet series assigns weight $n^{-s}$ to the
+$n$-th term.
+Temperature~$\tau$ plays the role of the complex variable~$s$:
+it controls which ``frequencies'' (frameworks) dominate the
+sum.
+High~$\tau$ (low~$\Re(s)$): all terms contribute roughly
+equally.
+Low~$\tau$ (high~$\Re(s)$): only the leading term survives.
+
+\medskip\noindent
+\textbf{The telescope principle.}\;
+\emph{Record everything, learn to search.}
+The Queen deposits faithfully (Definition~\ref{def:game-record}).
+The data~$\Phi$ grows without bound.
+Only the telescope---two real numbers---learns.
+This is the complete learning signal of MOPL:
+memories plus a lens, $(\Phi,\, \tau_{\text{UV}},\, \tau_{\text{IR}})$.
+\end{remark}
+\end{minipage}}
+
+\begin{definition}[Telescope search]%
+\label{def:telescope-search}
+Given the pool~$\Pi$ with win rates
+$\bar{w} \in [0,1]^k$,
+the record store~$\Phi$ with $N$ frozen
+\begin{CJK}{UTF8}{gbsn}棋谱\end{CJK},
+and temperatures $\tau > 0$, $\tau_{\text{size}} > 0$,
+the \emph{telescope search} assigns to each record
+$\gamma \in \Phi$ an action
+\begin{equation}\label{eq:action}
+  S(\gamma)
+  \;=\;
+  \underbrace{-\log \bar{w}_{f(\gamma)}}_
+    {\text{framework quality}}
+  \;+\;
+  \underbrace{\frac{|N_\gamma - N_{\text{current}}|}
+    {\tau_{\text{size}}}}_
+    {\text{scale distance}}\,,
+\end{equation}
+where $f(\gamma)$ is the framework used in record~$\gamma$
+and $N_\gamma$ is the board size.
+The search selects a framework by sampling from the
+partition function
+\begin{equation}\label{eq:partition}
+  Z \;=\; \sum_{\gamma \in \Phi}
+  \exp\!\bigl(-S(\gamma)/\tau\bigr),
+  \qquad
+  P(\gamma) = \frac{1}{Z}\,
+  \exp\!\bigl(-S(\gamma)/\tau\bigr).
+\end{equation}
+At $\tau \to 0$, only the record with smallest action
+survives (classical limit: greedy, exploit).
+At $\tau \to \infty$, all records contribute equally
+(quantum limit: uniform, explore).
+\end{definition}
+
+\medskip
+\noindent
+\colorbox{blue!8}{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+\begin{remark}[Path integral and free energy]%
+\label{rem:path-integral}
+\color{blue!50!black}%
+Definition~\ref{def:telescope-search} is a path integral:
+each \begin{CJK}{UTF8}{gbsn}棋谱\end{CJK}~$\gamma$
+is a path through board-state space,
+$S(\gamma)$ is its action, and
+$Z$ is the partition function.
+The \emph{free energy}
+\[
+  F \;=\; -\tau \log Z
+  \;=\; \min_{p}\;\bigl[\,
+    \underbrace{\mathbb{E}_p[\,S(\gamma)\,]}_{\text{energy}}
+    \;+\;
+    \tau\,
+    \underbrace{H(p)}_{\text{entropy}}
+  \,\bigr]
+\]
+decomposes the search into two competing terms:
+energy (prefer winning strategies at nearby scales)
+and entropy (prefer diverse exploration).
+Jensen's inequality gives the bound:
+the Boltzmann distribution~\eqref{eq:partition}
+is the unique minimiser of this variational problem.
+
+\medskip\noindent
+Three names, one structure:
+\emph{path integral} (physics),
+\emph{log-sum-exp} (computation),
+\emph{free-energy variational principle} (optimisation).
+The telescope's lens~$\tau$ is the inverse temperature
+that interpolates between classical (exploit) and
+quantum (explore).
+\end{remark}
+\end{minipage}}
+
+\begin{proposition}[Unconditional contraction of the pool]%
+\label{prop:contraction}
+Let $\bar{w}_n^{(i)}$ denote the win rate of framework~$i$
+after $n$ games with that framework, updated by the
+running average (Proposition~\ref{prop:lock}):
+\begin{equation}\label{eq:running-avg}
+  \bar{w}_{n+1}^{(i)}
+  \;=\;
+  \frac{n\,\bar{w}_n^{(i)} \;+\; o_{n+1}}{n+1}\,,
+  \qquad o_{n+1} \in [0,1].
+\end{equation}
+Then:
+\begin{enumerate}[label=\textup{(\roman*)}, nosep]
+\item \textbf{Initial-state independence.}\;
+  After $n \geq 1$ updates,
+  $\bar{w}_n^{(i)} = \frac{1}{n}\sum_{j=1}^{n} o_j$:
+  the empirical mean of outcomes.
+  The initial state~$\bar{w}_0$ has weight $0/n = 0$.
+
+\item \textbf{Almost-sure convergence.}\;
+  For a fixed opponent, the expected outcome
+  $\mu_i := \mathbb{E}[o \mid \text{framework } i]$ exists.
+  By the strong law of large numbers,
+  $\bar{w}_{n}^{(i)} \to \mu_i$ a.s.\
+  as the number of games $n_i \to \infty$.
+
+\item \textbf{Exploration guarantee.}\;
+  When $\tau > 0$ and win rates are clamped to
+  $[\epsilon, 1{-}\epsilon]$ with $\epsilon > 0$,
+  every framework has selection probability
+  $\geq \epsilon^{1/\tau}/k > 0$.
+  By Borel--Cantelli, each framework is sampled
+  infinitely often a.s., so \textup{(ii)} applies
+  to all $k$ frameworks simultaneously.
+\end{enumerate}
+
+\noindent
+The unique fixed point is
+$\mu^* = (\mu_1, \ldots, \mu_k)$:
+the true win-rate vector against this opponent.
+Convergence is \emph{unconditional}---it requires
+no assumption on the initial pool state~$\bar{w}_0$,
+the opponent's identity, or the board size.
+The structural requirements ($\tau > 0$, $\epsilon > 0$)
+are satisfied by construction
+(clamping to $[0.01, 0.99]$; temperature always positive).
+\end{proposition}
+
+\begin{proof}
+\textup{(i)}\;
+Unroll the recurrence.
+After one update:
+$\bar{w}_1 = (0 \cdot \bar{w}_0 + o_1)/1 = o_1$,
+independent of~$\bar{w}_0$.
+Inductively, $\bar{w}_n = (\sum_{j=1}^n o_j)/n$.
+The contraction factor at step~$n$ is
+$n/(n{+}1) < 1$; the cumulative factor from step~0
+is $\prod_{j=0}^{n-1} j/(j{+}1) = 0/n = 0$.
+
+\medskip\noindent
+\textup{(ii)}\;
+The outcomes $\{o_j\}$ for framework~$i$ against a
+fixed opponent are i.i.d.\ bounded random variables
+(each game is an independent trial on a fresh board).
+The strong law gives
+$\bar{w}_n^{(i)} \to \mu_i$ a.s.
+
+\medskip\noindent
+\textup{(iii)}\;
+Under Boltzmann sampling with clamped weights
+$\tilde{w}_i := \max(\epsilon,
+  \min(1{-}\epsilon, \bar{w}_i))$,
+the probability of selecting framework~$i$ is
+$p_i = \tilde{w}_i^{1/\tau} / \sum_j \tilde{w}_j^{1/\tau}
+\geq \epsilon^{1/\tau} /
+  (k \cdot (1{-}\epsilon)^{1/\tau}) > 0$.
+Since $\sum_t p_i = \infty$, the second Borel--Cantelli
+lemma gives $P(i \text{ selected i.o.}) = 1$.
+\end{proof}
+
+\begin{remark}[Freedom Theorem for the pool]%
+\label{rem:freedom-pool}
+Proposition~\ref{prop:contraction} is the Freedom Theorem
+applied to the pool:
+dissipative flow (running-average dilution,
+factor $n/(n{+}1)$) on a compact space
+($[0.01, 0.99]^k$, clamped) contracts to a
+finite free core ($\mu^*$, a single point).
+Compare Proposition~\ref{prop:honest}:
+there, the \emph{gated iteration} contracts on
+proof space~$\cP$;
+here, the \emph{pool update} contracts on $[0,1]^k$.
+Both are unconditional.
+Their composition---pool contraction feeding
+gated verification---gives MOPL's end-to-end
+convergence guarantee.
+\end{remark}
 
 \subsection{King's Predictive Control: S-MPPI backward dual}%
 \label{sec:kings-control}
