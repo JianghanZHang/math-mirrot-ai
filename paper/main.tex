@@ -2915,7 +2915,8 @@ The free energy defines a threshold for consistency:
 The Euler product
 $\zeta(s)^{-1} = \prod_p(1-p^{-s})$
 used throughout this paper
-(Remarks~\ref{rem:lattice-criterion}
+(Remarks~\ref{rem:lattice-criterion},
+\ref{rem:pool-library},
 and~\ref{rem:euler-vision})
 is a statement of statistical independence.
 Assign to each prime~$p$ a bosonic oscillator with energy
@@ -3224,8 +3225,9 @@ The Euler product
   \zeta(s)^{-1}
     \;=\; \prod_{p}\bigl(1 - p^{-s}\bigr)
 \]
-is the partition function of the Drunk Game across
-scales: each local factor $(1 - p^{-s})$ is the
+is the partition function
+(Remark~\ref{rem:primon-gas})
+of the Drunk Game across scales: each local factor $(1 - p^{-s})$ is the
 single-prime game, and the product assembles them
 into the global game---exactly as executor assembling
 (Definition~\ref{def:executor-assembling}) composes
@@ -4082,7 +4084,9 @@ The \emph{free energy}
 \]
 decomposes the search into two competing terms:
 energy (prefer winning strategies at nearby scales)
-and entropy (prefer diverse exploration).
+and entropy (prefer diverse exploration)---the
+same decomposition as
+Definition~\ref{def:transcommutation}.
 Jensen's inequality gives the bound:
 the Boltzmann distribution~\eqref{eq:partition}
 is the unique minimiser of this variational problem.
@@ -5981,7 +5985,8 @@ $3$ Euler factors.
 The encoder $E_\theta$ performs the ``multiplication''
 ---combining the $7$ factors into the $M$-dimensional
 electrode signal, just as the Euler product combines
-prime factors into $\zeta(s)^{-1}$.
+prime factors into $\zeta(s)^{-1}$
+(Remark~\ref{rem:primon-gas}).
 \end{remark}
 
 % ────────────────────────────────────────────────────────────
