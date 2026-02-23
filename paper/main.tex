@@ -5178,6 +5178,145 @@ without searching
 (\begin{CJK}{UTF8}{gbsn}不搜而视\end{CJK}).
 \end{remark}
 
+\begin{remark}[The transcommutation triangle:
+  Drunk--Queen--King]%
+\label{rem:transcommutation-triangle}
+\color{black!60}%
+The three agents in MOPL---Drunk, Queen, King---look
+like three separate ideas.
+They are one idea evaluated at three temperatures.
+
+\medskip\noindent
+Recall the free energy
+(Definition~\ref{def:transcommutation}):
+\[
+  F(\tau) \;=\; \min_p \;\bigl[\,
+    \underbrace{\mathbb{E}_p[\,E\,]}_{\text{energy (order)}}
+    \;+\;
+    \tau\,
+    \underbrace{H(p)}_{\text{entropy (disorder)}}
+  \,\bigr].
+\]
+The minimiser $p^*(\tau)$ is the Boltzmann distribution
+at temperature~$\tau$.
+At three temperatures it yields three agents:
+
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Temperature} &
+\textbf{Agent} &
+\textbf{Minimiser $p^*$} &
+\textbf{Role in MOPL} \\
+\midrule
+$\tau \to \infty$ &
+  Drunk &
+  $\mathrm{Uniform}$ (max entropy) &
+  Reference measure $\rho^*$ \\
+$\tau \to 0$ &
+  Queen &
+  $\arg\max\; V$ (max order) &
+  Primal: maximise expected value \\
+$\tau = \lambda$ (komi) &
+  King &
+  Saddle point of $\cL_{\mathrm{PD}}$ &
+  Dual: enforce $\mathrm{NLR} \geq 1$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The three edges of the triangle are:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Edge} &
+\textbf{Relationship} &
+\textbf{Mathematical content} \\
+\midrule
+Drunk $\leftrightarrow$ Queen &
+  Transcommutation &
+  $F(\rho^*) = F(\pi^*)$;\;
+  energy $\leftrightarrow$ entropy swap \\
+Queen $\leftrightarrow$ King &
+  Primal--dual &
+  Strong duality at $\cF$;\;
+  Lemma~\ref{lem:kings-penny} \\
+King $\leftrightarrow$ Drunk &
+  Viability test &
+  Drunk samples $\mathrm{Viab}(K)$;\;
+  Prop.~\ref{prop:viability} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{The triangle closes.}\;
+The SVOT loss (Definition~\ref{def:svot})
+encodes this triangle in a single expression:
+\begin{equation}\label{eq:svot-triangle}
+  \cL(\theta)
+  \;=\;
+  \underbrace{F(\pi_\theta)}_
+    {\substack{\text{Queen's objective:}\\\text{minimise free energy}}}
+  \;-\;
+  \underbrace{F(\rho^*)}_
+    {\substack{\text{Drunk's baseline:}\\\text{reference free energy}}}
+  \;\geq\; 0,
+\end{equation}
+with equality if and only if $\pi_\theta = \rho^*$
+(the policy \emph{is} the Drunk).
+The King's constraint $\mathrm{NLR} \geq 1$
+is the feasibility condition that keeps $\pi_\theta$
+inside $\mathrm{Viab}(K)$ during the descent from
+$\cL > 0$ to $\cL = 0$.
+
+\medskip\noindent
+\textbf{Training is annealing on the triangle.}\;
+At initialisation, $\pi_\theta \approx \rho^*$
+(random weights $\Rightarrow$ near-uniform policy):
+the agent starts at the Drunk vertex.
+As training progresses:
+\begin{enumerate}[label=(\roman*),nosep]
+\item The King's constraint $\mathrm{NLR} \geq 1$
+  activates---the agent crosses the
+  Drunk--King edge (viability test).
+  The komi $\lambda$ sets the operating temperature.
+\item The Queen's primal objective drives
+  $\bar{w} \to \mu^*$---the agent crosses the
+  King--Queen edge (primal--dual convergence).
+  The duality gap closes at $\cF$.
+\item At convergence, $F(\pi^*) = F(\rho^*)$ and
+  the SVOT loss reaches zero---the agent
+  has traversed the Queen--Drunk edge
+  (transcommutation).
+  The trained policy and the Drunk reference have
+  the \emph{same free energy},
+  redistributed from entropy to order.
+\end{enumerate}
+
+\medskip\noindent
+\textbf{The coin.}\;
+The fair coin in the Drunk Game ($p = \tfrac{1}{2}$)
+is the self-dual point of the transcommutation
+(Definition~\ref{def:transcommutation}).
+One face is strategy (Queen).
+The other face is randomness (Drunk).
+The edge is the King's constraint.
+The wrong-vacuum detection in
+Algorithm~\ref{alg:svot-locomotion}
+flips the coin back:
+when the Queen gets stuck
+($\|F\|^2 < \varepsilon_F$ and
+$\mathrm{Hol} \approx \mathrm{Id}$),
+fire a Drunk burst---return momentarily to
+$\tau = \infty$.
+The instanton is a transcommutation event.
+\end{remark}
+
 % ── §11.7: End-to-end learning via Drunk Walk ─────────────
 \subsection{End-to-end learning via Drunk Walk}\label{sec:e2e}
 
@@ -6036,8 +6175,8 @@ forces state-dependent discounting in Go.
         \Comment{drunk changes direction}
     \EndIf
     \Statex
-    \Comment{Learn: SAC
-      (Prop.~\ref{prop:svot-sac})}
+    \Comment{Learn: SVOT $=$ Yang--Mills $+$ Faddeev--Popov
+      (Def.~\ref{def:gauge-curvature})}
     \State Sample $(o, u, r, o', d, v) \sim \cB$;\quad
       $\tilde u' \sim \pi_\theta(\cdot \mid
         g_\phi(o'), v)$
@@ -6046,21 +6185,41 @@ forces state-dependent discounting in Go.
       - \alpha \log \pi_\theta(\tilde u' \mid
         g_\phi(o'), v)\bigr]$
       \Comment{TD target}
+    \State $\delta \gets Q_\psi(g_\phi(o), u) - y$
+      \Comment{\textbf{curvature} $F$: Eq.~\eqref{eq:td-curvature}}
     \State \textbf{Critic:}\;
       $\psi \gets \psi
-        - \eta\,\nabla_\psi \tfrac12
-          \norm{Q_\psi(g_\phi(o), u) - y}^2$
-      \Comment{$\Delta E$ term of SVOT}
+        - \eta\,\nabla_\psi \tfrac12\,\delta^2$
+      \Comment{$\int|F|^2$ (Yang--Mills): Eq.~\eqref{eq:critic-ym}}
     \State \textbf{Actor + Encoder:}\;
       $(\theta,\phi) \gets (\theta,\phi)
         - \eta\,\nabla_{(\theta,\phi)}\bigl[
           \alpha\log\pi_\theta(\tilde u \mid
             g_\phi(o), v)
           - Q_\psi(g_\phi(o), \tilde u)\bigr]$
-      \Comment{$\DKL$ term}
+      \Comment{$\alpha\DKL$ (Faddeev--Popov): Eq.~\eqref{eq:svot-ym}}
     \State $\bar\psi \gets
       (1{-}\rho)\bar\psi + \rho\psi$
       \Comment{Polyak}
+    \Statex
+    \Comment{Gauge diagnostics
+      (Remark~\ref{rem:gauge-alg})}
+    \State $\alpha \gets \alpha \cdot
+      \mathrm{clip}\!\bigl(
+        \mathbb{E}_{\cB}[\delta^2]\,/\,
+        \norm{F}^2_{\mathrm{ref}},\;
+        c^{-1},\; c\bigr)$
+      \Comment{curvature-adaptive $\alpha$
+        (asymptotic freedom)}
+    \If{$\mathbb{E}_\cB[\delta^2] < \varepsilon_F$
+      \textbf{and}\;
+      $\norm{\mathrm{Hol}(\gamma) - \mathrm{Id}} < \varepsilon_H$}
+      \State $v_{\mathrm{cmd}}
+        \sim \rho^*(\cdot \mid x_t)$;\;
+        $T \sim \mathrm{Exp}(\lambda / 4)$
+        \Comment{wrong vacuum $\Rightarrow$
+          Drunk burst (instanton)}
+    \EndIf
   \EndFor
 \EndFor
 \end{algorithmic}
@@ -6162,6 +6321,129 @@ Any other switch-time distribution
 (e.g.\ fixed-length episodes)
 would require $\tau_{\mathrm{remain}}$ in the state,
 breaking the Markov assumption.
+\end{remark}
+
+\begin{remark}[Gauge diagnostics in
+  Algorithm~\ref{alg:svot-locomotion}]%
+\label{rem:gauge-alg}
+\color{black!60}%
+Lines~13--21 of Algorithm~\ref{alg:svot-locomotion}
+are the SVOT loss
+$\cL = \tfrac{1}{2}\mathbb{E}[\delta^2]
+  + \alpha\,\DKL(\pi_\theta \| \rho^*)$
+\eqref{eq:svot-ym},
+which is the Yang--Mills action
+$\int|F|^2$
+plus a Faddeev--Popov gauge-fixing term
+(Definition~\ref{def:gauge-curvature}).
+Three additions exploit this structure.
+
+\medskip\noindent
+\textbf{(i)\ Curvature-adaptive $\alpha$
+  (asymptotic freedom).}\;
+Standard SAC tunes $\alpha$ to maintain a target
+\emph{entropy}: $H(\pi) \approx H_{\mathrm{target}}$.
+Line~20 replaces this with a target
+\emph{curvature}:
+\[
+  \alpha
+  \;\gets\;
+  \alpha
+  \cdot
+  \mathrm{clip}\!\Bigl(
+    \frac{\mathbb{E}[\delta^2]}
+         {\norm{F}^2_{\mathrm{ref}}},\;
+    c^{-1},\; c
+  \Bigr),
+  \qquad c \in (1, 2].
+\]
+When the critic is bad ($\mathbb{E}[\delta^2]$ large),
+$\alpha$ increases---more exploration,
+because the value function is unreliable.
+When the critic is good ($\mathbb{E}[\delta^2]$ small),
+$\alpha$ decreases---more exploitation,
+because the value function is trustworthy.
+This is the RL analogue of \emph{asymptotic freedom}
+in QCD:
+the coupling constant (exploration) weakens
+at low energy (good critic),
+strengthens at high energy (bad critic).
+Standard entropy targeting is
+scale-independent---it ignores the critic's
+reliability entirely.
+
+\medskip\noindent
+\textbf{(ii)\ Wrong-vacuum detection
+  (instanton trigger).}\;
+Lines~21--22 monitor two gauge-invariant
+quantities simultaneously:
+curvature $\mathbb{E}[\delta^2]$
+and holonomy
+$\norm{\mathrm{Hol}(\gamma) - \mathrm{Id}}$.
+Four regimes:
+
+\smallskip
+\begin{center}
+\small
+\begin{tabular}{@{}ccl@{}}
+\toprule
+$\norm{F}^2$ & $\mathrm{Hol}$
+  & \textbf{Interpretation} \\
+\midrule
+high & high
+  & Learning, making progress. Continue. \\
+low  & high
+  & Converged. Good policy. \\
+high & $\approx \mathrm{Id}$
+  & Early training. Normal. Continue. \\
+low  & $\approx \mathrm{Id}$
+  & \textbf{Wrong vacuum.}
+    Flat but trivial. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip\noindent
+The last row is the failure mode that standard SAC
+cannot detect:
+the connection is flat ($\delta \approx 0$),
+so the critic loss is small,
+but the holonomy is trivial
+($\mathrm{Hol} \approx \mathrm{Id}$)---the
+robot stands still or sways without walking.
+The policy has converged to a
+\emph{local minimum with zero physical content}.
+In gauge-theory language: the \emph{wrong vacuum}.
+
+The fix is an \emph{instanton}---a tunnelling event
+from the wrong vacuum to the correct one.
+Line~22 implements this as a Drunk burst:
+resample $v_{\mathrm{cmd}}$ and extend the
+command duration by a factor of~4
+(longer random impulse to escape the basin).
+Without gauge diagnostics, this failure mode
+is invisible: the loss is small,
+the policy looks converged,
+but the robot is not walking.
+
+\medskip\noindent
+\textbf{(iii)\ Gauge-invariant logging.}\;
+The confinement principle
+(Remark~\ref{rem:gauge-dictionary})
+dictates what to log:
+\begin{itemize}[nosep]
+\item $\mathbb{E}[\delta^2]$ per contact mode
+  $c \in \{0,1\}^4$
+  (where is the curvature concentrated?);
+\item $\mathrm{Hol}(\gamma)$ per test gait cycle
+  (is the policy producing displacement?);
+\item $\mathbb{E}[\delta]$
+  (Bianchi check:
+   nonzero means actor--critic inconsistency).
+\end{itemize}
+Do \emph{not} log individual neuron activations---they
+are gauge-dependent
+(Remark~\ref{rem:gauge-dictionary}).
 \end{remark}
 
 \begin{remark}[Where the gradient flows]
@@ -7334,6 +7616,468 @@ It \emph{is} one:
   moves the robot, wins the game,
   keeps the queen alive).
 \end{itemize}
+\end{remark}
+
+\begin{definition}[Gauge-theoretic curvature of a policy]%
+\label{def:gauge-curvature}
+\color{black!60}%
+Remark~\ref{rem:nn-gauge} identifies the policy
+$\pi_\theta$ as a \emph{connection}
+(gauge field)
+and $\theta \sim \theta'$ as a \emph{gauge
+transformation}.
+These are the \emph{kinematics} of the gauge theory.
+The \emph{dynamics} require the curvature.
+
+\medskip\noindent
+\textbf{Curvature $=$ temporal-difference error.}\;
+Given a policy $\pi_\theta$ with critic $Q_\psi$,
+the \emph{curvature} is the TD error
+\begin{equation}\label{eq:td-curvature}
+  \delta_t
+  \;=\;
+  r_t
+  + \gamma\,Q_\psi(x_{t+1},\, \pi_\theta(x_{t+1}))
+  - Q_\psi(x_t,\, u_t).
+\end{equation}
+This measures the failure of the value function
+to be \emph{path-independent}:
+if $Q$ satisfies the Bellman equation exactly,
+then $\delta_t = 0$ for every transition.
+A zero TD error everywhere means the connection
+is \emph{flat}---parallel transport around any
+closed loop returns the same value.
+
+\medskip\noindent
+\textbf{The SVOT loss is the Yang--Mills action.}\;
+The critic loss in
+Algorithm~\ref{alg:svot-locomotion} (line~14)
+is
+\begin{equation}\label{eq:critic-ym}
+  \cL_{\mathrm{critic}}(\psi)
+  \;=\;
+  \tfrac{1}{2}\,
+  \mathbb{E}\bigl[\,\delta_t^{\,2}\,\bigr]
+  \;=\;
+  \tfrac{1}{2}\,
+  \mathbb{E}\bigl[\,\norm{F}^2\,\bigr],
+\end{equation}
+and the full SVOT loss~\eqref{eq:svot-loss}
+decomposes as
+\begin{equation}\label{eq:svot-ym}
+  \cL(\theta, \psi, \phi)
+  \;=\;
+  \underbrace{%
+    \tfrac{1}{2}\,
+    \mathbb{E}\bigl[\,\norm{F}^2\,\bigr]
+  }_{\displaystyle\int |F|^2\;\text{(Yang--Mills)}}
+  \;+\;
+  \underbrace{%
+    \alpha\,\DKL\!\bigl(\pi_\theta
+      \,\big\|\, \rho^*\bigr)
+  }_{\text{Faddeev--Popov (gauge fixing)}}.
+\end{equation}
+The first term minimises curvature---making
+the connection as close to flat as the reward
+landscape allows.
+The second term breaks gauge redundancy by
+penalising deviation from the reference
+measure $\rho^*$ (the Drunk Command).
+Without the second term, the path integral
+$\int e^{-\cL/\alpha}\,d\theta$ diverges
+(infinite gauge volume).
+With it, the integral is finite and well-conditioned.
+The entropy coefficient $\alpha$ controls how much
+gauge freedom remains:
+$\alpha \to 0$ is hard gauge fixing (greedy);
+finite $\alpha$ is soft gauge fixing (SAC).
+\end{definition}
+
+\begin{remark}[Complete gauge--learning dictionary]%
+\label{rem:gauge-dictionary}
+\color{black!60}%
+The following table collects every identification
+between gauge theory and the learning framework
+of this paper.
+Items marked \textbf{K} are kinematics
+(Remark~\ref{rem:nn-gauge});
+items marked \textbf{D} are dynamics
+(Definition~\ref{def:gauge-curvature}).
+None is an analogy.
+Each is a structural identity:
+the left column \emph{is} the right column,
+on a different base manifold.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Gauge theory}
+  & \textbf{Neural network / SVOT}
+  & \\
+\midrule
+Principal bundle $(P, M, G)$
+  & $(\Theta, \cX, \cG)$:\;
+    parameters, states, gauge group
+  & \textbf{K} \\[3pt]
+Connection $A_\mu$
+  & Policy $\pi_\theta \colon \cX \to \cA$
+  & \textbf{K} \\[3pt]
+Parallel transport
+  & Forward pass:
+    $x \xrightarrow{\pi_\theta} u
+     \xrightarrow{\text{dyn}} x'$
+  & \textbf{K} \\[3pt]
+Gauge transformation
+  & $\theta \to \theta'$
+    with $\mathrm{Viab}(K;\pi_\theta)
+    = \mathrm{Viab}(K;\pi_{\theta'})$
+  & \textbf{K} \\[3pt]
+Gauge fixing
+  & Training: SGD picks one
+    $\theta^*$ per orbit
+  & \textbf{K} \\[3pt]
+\midrule
+Curvature $F_{\mu\nu}$
+  & TD error $\delta_t = r + \gamma Q' - Q$
+    \;\eqref{eq:td-curvature}
+  & \textbf{D} \\[3pt]
+Yang--Mills action $\int |F|^2$
+  & Critic loss
+    $\tfrac{1}{2}\mathbb{E}[\delta^2]$
+    \;\eqref{eq:critic-ym}
+  & \textbf{D} \\[3pt]
+Faddeev--Popov term
+  & $\alpha\,\DKL(\pi \| \rho^*)$
+    \;\eqref{eq:svot-ym}
+  & \textbf{D} \\[3pt]
+Full action $S$
+  & SVOT loss $\cL$
+    \;\eqref{eq:svot-ym}
+  & \textbf{D} \\[3pt]
+Field equation $D^* F = J$
+  & $\nabla_\theta \cL = 0$
+    (converged training)
+  & \textbf{D} \\[3pt]
+Source current $J$
+  & Reward signal $r$
+  & \textbf{D} \\[3pt]
+Bianchi identity $DF = 0$
+  & Bellman consistency:
+    $\mathbb{E}[\delta \mid \pi^*] = 0$
+  & \textbf{D} \\[3pt]
+\midrule
+Wilson loop
+  & $\mathrm{Hol}(\gamma) \in \mathrm{SE}(3)$:
+    net displacement per gait cycle
+  & \textbf{K} \\[3pt]
+Mass gap $m > 0$
+  & $\norm{\mathrm{Hol}(\gamma) - \mathrm{Id}} > 0$:
+    nontrivial holonomy
+  & \textbf{K} \\[3pt]
+Vacuum
+  & Drunk Game: flat connection,
+    $\delta = 0$, no reward
+  & \textbf{D} \\[3pt]
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{The vacuum is the Drunk Game.}\;
+At $\alpha \to \infty$
+the $\DKL$ term dominates:
+$\pi_\theta \to \rho^*$ (uniform random).
+All policies are equivalent.
+The connection is flat ($\delta = 0$ trivially,
+because $Q = \mathrm{const}$ satisfies Bellman
+when every action is equally good).
+This is the \emph{symmetric phase}:
+the gauge group acts freely,
+no physical content.
+This is Remark~\ref{rem:model-free}:
+the Drunk Game is the origin---zero learning,
+zero optimisation, the free core is $\cF = \cX$.
+
+At finite $\alpha$, symmetry breaks.
+The connection acquires curvature.
+A nontrivial minimum of
+$S = \int|F|^2 + \alpha\,\DKL$ appears.
+$m_* > 0$: the gait moves the robot,
+the strategy wins the game,
+the queen survives.
+This is the Yang--Mills mass gap on
+the policy bundle.
+
+\medskip\noindent
+\textbf{Confinement $=$ the black box.}\;
+In QCD, quarks are \emph{confined}:
+individual quarks cannot be observed in isolation,
+only colour-singlet bound states
+(protons, mesons) are physical.
+The analogous statement for neural networks:
+individual neuron activations are
+\emph{gauge-dependent}---they change
+under reparametrisation
+$\theta \to \theta'$ within the same
+gauge orbit~\eqref{eq:gauge-equiv}.
+Only the \emph{output}
+$\pi_\theta(x)$ is gauge-invariant.
+
+The ``black-box problem'' of neural networks
+is not a failure of interpretability.
+It is \emph{confinement}.
+Asking ``what does neuron $j$ in layer $\ell$
+represent?''
+is asking ``what does quark \#3 in the proton
+look like?''
+The question is gauge-dependent;
+it has no physical answer.
+The correct observables are:
+\begin{itemize}[nosep]
+\item the output $\pi_\theta(x)$
+  (the colour-singlet: gauge-invariant);
+\item the holonomy $\mathrm{Hol}(\gamma)$
+  (Wilson loop: path-integrated observable);
+\item the free core $\cF$
+  (vacuum structure:
+  what survives all reparametrisations).
+\end{itemize}
+Any ``interpretability method'' that reports
+per-neuron attributions is reporting gauge artefacts.
+A method that reports input--output relationships,
+holonomies, or invariant subspaces is reporting
+physics.
+\end{remark}
+
+\begin{definition}[Locomotion curriculum:
+  Stand--Walk--Work]%
+\label{def:locomotion-curriculum}
+\color{black!60}%
+The \emph{locomotion curriculum} is an ordered
+sequence of three training phases:
+\begin{equation}\label{eq:curriculum}
+  \Lambda_{\mathrm{task}}
+  \;=\;
+  \bigl\{\,
+    \underset{\text{Phase 0}}{\mathrm{Stand}},\;
+    \underset{\text{Phase 1}}{\mathrm{Walk}},\;
+    \underset{\text{Phase 2}}{\mathrm{Work}}
+  \,\bigr\}.
+\end{equation}
+Each phase runs Algorithm~\ref{alg:svot-locomotion}
+with different command and constraint parameters.
+The policy $\pi_\theta$ carries across phases
+(transfer, not reinitialisation).
+Promotion from Phase~$n$ to Phase~$n{+}1$
+requires Phase~$n$'s holonomy to exceed a threshold.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}lp{2.3cm}p{2.5cm}p{2.5cm}p{2.8cm}@{}}
+\toprule
+& \textbf{Phase 0: Stand}
+& \textbf{Phase 1: Walk}
+& \textbf{Phase 2: Work} \\
+\midrule
+Command $v_{\mathrm{cmd}}$
+  & $0 \in \R^3$\newline (stay still)
+  & $v \sim \rho^*$\newline (Drunk Command)
+  & $v \sim \rho^*$\newline $+$ task target \\[5pt]
+Constraint $K_n$
+  & $x \in K_{\mathrm{loco}}$\newline (not fall)
+  & $x \in K_{\mathrm{loco}}$\newline (not fall)
+  & $x \in K_{\mathrm{loco}}$\newline
+    $\wedge$ object intact \\[5pt]
+Free core $\cF_n$
+  & Upright\newline standing
+  & Standing\newline $+$ viable gaits
+  & Standing\newline $+$ locomotion\newline
+    $+$ grasp \\[5pt]
+Gauge group $\cG_n$
+  & $\mathrm{SO}(3)$\newline (orientation)
+  & $\mathrm{SE}(2)$\newline (position $+$ heading)
+  & $\mathrm{SE}(3)$\newline
+    $\times\, \mathrm{Diff}(\text{hand})$ \\[5pt]
+Holonomy
+  & $\mathrm{Id}$\newline (no displacement)
+  & $\mathrm{Hol}(\gamma)$\newline
+    $\in \mathrm{SE}(3)$
+  & Task completion\newline per work cycle \\[5pt]
+Promotion test
+  & Survives\newline $T_{\min}$ seconds
+  & Reaches target\newline location
+  & Task done\newline (dish washed) \\[5pt]
+Wrong vacuum
+  & Falls\newline immediately
+  & Stands still\newline ($\mathrm{Hol} \approx \mathrm{Id}$)
+  & Walks but\newline does not grasp \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+The ordering $0 \to 1 \to 2$ is the
+\emph{unique topological sort} of the
+dependency graph:
+\begin{itemize}[nosep]
+\item Walking requires standing
+  (walking is a controlled fall from standing;
+  $\cF_0 \subset \mathrm{Viab}(K_1)$).
+\item Mobile manipulation requires locomotion
+  (the robot must reach the task location;
+  $\cF_1 \subset \mathrm{Viab}(K_2)$).
+\end{itemize}
+Skipping Phase~0 forces Phase~1 to discover
+standing from scratch---most training time
+is wasted on balance, not locomotion.
+Skipping Phase~1 strands Phase~2 with a robot
+that can stand at the sink but cannot walk to it.
+\end{definition}
+
+\begin{remark}[The curriculum is the expanding lattice
+  on a task axis]%
+\label{rem:curriculum-lattice}
+\color{black!60}%
+In Go, the expanding lattice
+$\Lambda_R = \{5, 7, \ldots, 31\}$
+increases \emph{spatial resolution}:
+same game, larger board.
+In robotics, $\Lambda_{\mathrm{task}}
+= \{\mathrm{Stand}, \mathrm{Walk}, \mathrm{Work}\}$
+increases \emph{task complexity}:
+same body, harder job.
+The mathematical structure is identical:
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+& \textbf{Go} & \textbf{Robot} \\
+\midrule
+Lattice
+  & Board sizes $\Lambda_R$ (primes)
+  & Task phases $\Lambda_{\mathrm{task}}$ \\
+Pool carryover
+  & Frameworks carry\newline across scales
+  & Policy $\pi_\theta$ carries\newline
+    across phases \\
+Promotion
+  & $V_t > $ threshold
+  & $\mathrm{Hol} > $ threshold \\
+Initialisation
+  & Pool from previous scale
+  & $\theta$ from previous phase \\
+Free core
+  & Two eyes (all sizes)
+  & Standing (all phases) \\
+Wrong vacuum
+  & High NLR, low territory
+  & Low $\norm{F}^2$, trivial Hol \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{Product lattice.}\;
+Within each phase, difficulty also increases:
+\begin{itemize}[nosep]
+\item Phase~0: flat ground
+  $\to$ slope $\to$ uneven $\to$ soft;
+\item Phase~1: slow
+  $\to$ fast $\to$ variable speed
+  $\to$ outdoor;
+\item Phase~2: pick up
+  $\to$ carry $\to$ place
+  $\to$ wash $\to$ sequence tasks.
+\end{itemize}
+The full curriculum is therefore a
+\emph{product lattice}
+$\Lambda = \Lambda_{\mathrm{task}}
+  \times \Lambda_{\mathrm{difficulty}}$.
+Go has one lattice dimension (board size).
+The robot has two (task type $\times$ difficulty).
+Same pool carryover, same promotion logic,
+same gauge diagnostics at every node.
+
+\medskip\noindent
+\textbf{Free core nesting.}\;
+The key structural property is
+\begin{equation}\label{eq:free-core-nesting}
+  \cF_0
+  \;\subset\;
+  \mathrm{Viab}(K_1)
+  \;\subset\;
+  \mathrm{Viab}(K_2).
+\end{equation}
+Each phase's free core is contained in the
+next phase's viability kernel.
+This is not a design choice---it is forced
+by the physics:
+you cannot manipulate while falling
+($\cF_0 = \emptyset$ implies
+$\mathrm{Viab}(K_2) = \emptyset$).
+The curriculum respects this nesting
+by initialising Phase~$n{+}1$
+from Phase~$n$'s converged policy,
+which is already inside $\mathrm{Viab}(K_{n+1})$.
+Random initialisation would start outside
+the viability kernel with high probability.
+
+\medskip\noindent
+\textbf{Gauge group extension.}\;
+The gauge group grows with each phase:
+$\mathrm{SO}(3)
+  \hookrightarrow \mathrm{SE}(2)
+  \hookrightarrow \mathrm{SE}(3)
+  \times \mathrm{Diff}(\text{hand})$.
+Each extension adds physical degrees of freedom
+that the previous phase did not use.
+Standing has orientation symmetry only.
+Walking adds translational symmetry.
+Manipulation adds hand configuration.
+More gauge freedom requires a larger network
+(Remark~\ref{rem:nn-gauge}:
+overparametrisation = larger gauge group = easier
+training).
+The curriculum provides this incrementally:
+Phase~0's small network initialises
+Phase~1's larger network via parameter padding,
+and Phase~1 initialises Phase~2.
+
+\medskip\noindent
+\textbf{The Drunk/Queen/King triangle
+operates within each phase.}\;
+The curriculum is the \emph{outer} lattice.
+Within each phase, the \emph{inner} learning
+loop is the same triangle as in Go:
+the Drunk explores
+(random standing / random walking /
+random grasping),
+the Queen refines
+(pool replicator on contact-mode strategies),
+and the King optimises
+(value-based SAC with
+curvature-adaptive~$\alpha$).
+The gauge diagnostics
+(Remark~\ref{rem:gauge-alg})
+detect wrong vacuums at every phase.
+
+\medskip\noindent
+\textbf{The endpoint.}\;
+Phase~2 converges when
+$\mathrm{Hol}_{\mathrm{task}} > 0$:
+the robot completes a task cycle
+(carries a dish from counter to rack,
+collects trash from floor to bin).
+At this point the free core
+$\cF_2$ includes standing, locomotion,
+and manipulation---the robot is \emph{useful}.
+The expanding lattice has reached its
+UV completion.
 \end{remark}
 
 \begin{definition}[Executor assembling]\label{def:executor-assembling}
