@@ -2936,6 +2936,25 @@ This is the \emph{Primon Gas}~\cite{Julia90}:
 unique prime factorisation
 $\Leftrightarrow$
 statistical independence of oscillators.
+
+Equivalently, the coherent-state path integral over
+bosonic fields $\bar\phi_p(\tau), \phi_p(\tau)$ gives
+\[
+  \zeta(s)
+  \;=\; \int \mathcal{D}\bar\phi\,\mathcal{D}\phi\;
+  \exp\!\Bigl(-\sum_{p}\int_{0}^{s}
+  \bar\phi_p(\partial_\tau + \log p)\,\phi_p\;d\tau\Bigr).
+\]
+The Gaussian integral evaluates to
+$\prod_p \det(\partial_\tau + \log p)^{-1}
+= \prod_p(1-p^{-s})^{-1}$,
+recovering the Euler product.
+This is transcommutation at the computational level:
+the deterministic complexity of prime-by-prime
+multiplication is exchanged for stochastic summation
+over all field configurations, with $\zeta(s)$
+(the free energy) invariant.
+
 The functional equation
 $\xi(s) = \xi(1-s)$
 is a transcommutation
