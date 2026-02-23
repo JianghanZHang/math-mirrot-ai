@@ -7054,6 +7054,288 @@ is the trivial connection---massless,
 no locomotion.
 \end{remark}
 
+\begin{remark}[Universal not-lost condition:
+  the free core is the self-reproducing element]%
+\label{rem:universal-not-lost}
+\color{black!60}%
+The not-lose constraint appears in every instantiation
+of this paper.
+In each case it takes the same abstract form:
+\begin{equation}\label{eq:universal-not-lost}
+  x \in \mathrm{Viab}(K)
+  \quad\Longleftrightarrow\quad
+  \cF \neq \emptyset
+  \quad\Longleftrightarrow\quad
+  \exists\;\text{admissible path}\;
+  x(t) \in K \;\;\forall\, t \geq 0.
+\end{equation}
+The left equivalence is
+Proposition~\ref{prop:viability}\,(i):
+the viability kernel contains the free core.
+The right equivalence is Aubin's definition of
+viability (1991): a state is viable if and only if
+there exists at least one control keeping
+the trajectory inside the constraint set forever.
+
+\medskip\noindent
+\textbf{Three instantiations.}\;
+The following table lists what ``not-lose,''
+``free core,'' and ``self-reproducing element'' mean
+in each domain.
+The structural content is identical;
+only the substrate changes.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}lp{3.2cm}p{3.8cm}p{3.8cm}@{}}
+\toprule
+& \textbf{Go (MOPL)}
+& \textbf{Quadruped}
+& \textbf{Colony / swarm} \\
+\midrule
+Constraint $K$
+  & $\mathrm{NLR} \geq 1$\newline (not lose the game)
+  & $x \in K_{\mathrm{loco}}$\newline (not fall)
+  & Queen alive $\wedge$\newline
+    $|\text{workers}| \geq n_{\min}$ \\[6pt]
+Free core $\cF$
+  & Two living eyes\newline
+    (unconditionally alive group)
+  & Standing configuration\newline
+    $\cF_{\mathrm{loco}}
+     \cong \mathrm{SE}(2) \times
+     \cF_{\mathrm{shape}}$
+  & Queen $+$ minimal\newline
+    reproductive cluster \\[6pt]
+Self-reproducing
+  & Two eyes create\newline
+    territory that creates\newline
+    more eyes
+  & Standing $\to$ gait $\to$\newline
+    locomotion $\to$\newline
+    new standing
+  & Queen $\to$ eggs $\to$\newline
+    workers $\to$ forage\newline
+    $\to$ queen survives \\[6pt]
+$\mathrm{Viab}(K)$
+  & $\mathrm{Push}(\cF)$:\newline
+    all board positions\newline
+    reachable from two eyes
+  & $\bigcup_\Gamma
+    \mathrm{Orbit}_\Gamma(\cF_{\mathrm{loco}})$:\newline
+    all viable gait orbits
+  & All colony states from\newline
+    which the queen can\newline
+    be sustained \\[6pt]
+Path to $\infty$
+  & $\exists$ framework sequence\newline
+    keeping $\mathrm{NLR} \geq 1$\newline
+    at every scale
+  & $\exists$ torque sequence\newline
+    keeping $x(t) \in K_{\mathrm{loco}}$\newline
+    $\forall\, t \geq 0$
+  & $\exists$ task allocation\newline
+    keeping queen alive\newline
+    and $|\text{workers}| \geq n_{\min}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{The queen bee theorem.}\;
+In a eusocial colony, the queen is the free core.
+She is the only element whose removal makes
+$\cF = \emptyset$---without her,
+no new workers are produced,
+the worker count decays monotonically,
+and eventually $|\text{workers}| < n_{\min}$:
+the colony exits the constraint set $K$ in finite time.
+The queen survives if and only if
+$\cF \neq \emptyset$
+if and only if
+there exists a reachable path to $t \to \infty$.
+This is not a metaphor.
+It is the Freedom Theorem
+(Remark~\ref{rem:freedom-pool})
+applied to a third substrate:
+dissipative flow
+(worker attrition)
+on a compact space
+(bounded colony size)
+converges to a finite free core
+(queen $+$ minimum reproductive cluster).
+
+\medskip\noindent
+\textbf{Why ``not-lost'' and not ``winning.''}\;
+The viability constraint~\eqref{eq:universal-not-lost}
+asks for \emph{existence} of a surviving path,
+not for optimality.
+Winning is a stronger condition---it requires
+the path to also accumulate reward
+(territory, distance, honey).
+But winning is impossible without first not-losing:
+$\cF = \emptyset$ implies no admissible path exists
+at all, let alone an optimal one.
+The free core is the necessary condition.
+Everything else---strategy, gait, foraging
+pattern---is optimisation \emph{within}
+$\mathrm{Viab}(K)$.
+\end{remark}
+
+\begin{remark}[The neural network is a gauge transformation]%
+\label{rem:nn-gauge}
+\color{black!60}%
+Remark~\ref{rem:locomotion-parallel-transport} identifies
+the trained policy $\pi_{\theta^*}$ as a gauge field
+(connection on the state--action bundle).
+This section makes the full gauge structure explicit.
+There are three objects, not one.
+
+\medskip\noindent
+\textbf{(i)\ Gauge field (connection).}\;
+A fixed $\theta$ defines a map
+$\pi_\theta \colon \cX \to \cA$,
+state to action.
+The dynamics
+$x_t \xrightarrow{\pi_\theta(x_t)} x_{t+1}$
+is \emph{parallel transport} along the connection $\pi_\theta$.
+A gait cycle $\gamma$ in joint space produces
+holonomy $\mathrm{Hol}(\gamma) \in \mathrm{SE}(3)$.
+The holonomy is the gauge-invariant content:
+it depends on the loop $\gamma$,
+not on the parametrisation $\theta$.
+
+\medskip\noindent
+\textbf{(ii)\ Gauge group.}\;
+Define the equivalence
+\begin{equation}\label{eq:gauge-equiv}
+  \theta \sim \theta'
+  \quad\stackrel{\mathrm{def}}{\Longleftrightarrow}\quad
+  \mathrm{Viab}(K;\, \pi_\theta)
+  \;=\;
+  \mathrm{Viab}(K;\, \pi_{\theta'}).
+\end{equation}
+Two parametrisations are \emph{gauge-equivalent}
+if they produce the same viability kernel---the
+same free core, the same surviving paths,
+the same holonomies.
+The gauge group is
+$\cG = \{\,\theta \to \theta' : \theta \sim \theta'\,\}$.
+This is the symmetry group of the loss landscape:
+the flat directions of $\cL(\theta)$ are exactly
+the gauge orbits $[\theta] \in \Theta / \cG$.
+
+\medskip\noindent
+\textbf{(iii)\ Gauge fixing $=$ training.}\;
+SGD starts from random $\theta_0$ and converges to
+$\theta^*$, a single representative of its
+gauge orbit $[\theta^*]$.
+This is gauge fixing.
+In the path-integral language:
+\[
+  \underbrace{%
+    \int_\Theta e^{-\cL(\theta)/\alpha}\,d\theta
+  }_{\text{path integral (all $\theta$)}}
+  \;\;\xrightarrow{\;\alpha \to 0\;}\;\;
+  \underbrace{%
+    e^{-\cL(\theta^*)/\alpha}
+  }_{\text{saddle point (one $\theta^*$)}}
+  \;=\;
+  \text{classical limit.}
+\]
+The temperature $\alpha$ is the SAC entropy coefficient.
+At $\alpha \to 0$ (greedy), the integral localises
+to a single gauge-fixed classical solution.
+At finite $\alpha$ (exploratory), the integral
+averages over the gauge orbit---soft policy
+optimisation \emph{is} quantum gauge theory
+at finite temperature.
+
+\medskip\noindent
+\textbf{Why overparametrisation helps.}\;
+A network with $d$ parameters has parameter space
+$\Theta \subseteq \R^d$.
+The physical content is the quotient
+$\Theta / \cG$, whose dimension is
+$d - \dim(\cG)$.
+A larger network increases $d$, hence increases
+$\dim(\cG)$---more flat directions, more gauge
+redundancy, more paths from $\theta_0$ to the
+correct gauge orbit.
+Overparametrisation does not add physical degrees
+of freedom.
+It enlarges the gauge group, making
+gauge fixing (training) easier.
+This is the same mechanism by which
+a larger lattice in Yang--Mills
+makes the path integral better-conditioned:
+more redundancy, better sampling, same physics.
+
+\medskip\noindent
+\textbf{The three instantiations.}\;
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}lp{3.0cm}p{3.6cm}p{3.6cm}@{}}
+\toprule
+& \textbf{Go (MOPL)}
+& \textbf{Quadruped}
+& \textbf{Colony} \\
+\midrule
+Bundle
+  & Board $\to$ legal moves
+  & $\cX \to \R^{12}$ (torques)
+  & Colony state $\to$\newline task allocations \\[4pt]
+Section (NN)
+  & Pool $\to$ framework\newline $\to$ move
+  & Encoder $\to$ policy\newline $\to$ $\tau$
+  & Scheduler $\to$\newline task assignment \\[4pt]
+Gauge transf
+  & Different pool weights,\newline same territory
+  & Different $\theta$,\newline same $\mathrm{Viab}(K_{\mathrm{loco}})$
+  & Different schedules,\newline same queen survival \\[4pt]
+Gauge fixing
+  & Pool convergence\newline (Queen's game)
+  & SAC convergence\newline (Algorithm~\ref{alg:svot-locomotion})
+  & Colony stabilisation \\[4pt]
+Holonomy
+  & Territory gained\newline per game cycle
+  & $\mathrm{SE}(3)$ displacement\newline per gait cycle
+  & Honey stored\newline per foraging round \\[4pt]
+Invariant ($\cF$)
+  & Two eyes
+  & Standing
+  & Queen alive \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{Summary.}\;
+The neural network is not ``like'' a gauge transformation.
+It \emph{is} one:
+\begin{itemize}[nosep]
+\item the trained network $\pi_{\theta^*}$
+  is a \textbf{gauge-fixed connection}
+  (parallel transport from state to action);
+\item the reparametrisation
+  $\theta \to \theta'$ preserving
+  $\mathrm{Viab}(K)$
+  is a \textbf{gauge transformation};
+\item training (SGD/SAC) is \textbf{gauge fixing}
+  (picking one $\theta^*$ per orbit);
+\item the free core $\cF$ is the
+  \textbf{gauge invariant}
+  (what survives all reparametrisations);
+\item $m_* > 0$ is \textbf{nontrivial holonomy}
+  (the network actually does something:
+  moves the robot, wins the game,
+  keeps the queen alive).
+\end{itemize}
+\end{remark}
+
 \begin{definition}[Executor assembling]\label{def:executor-assembling}
 Let $\cT = \{t_1, \ldots, t_k\}$ be a finite set of \emph{executor types},
 each with movement graph $G_{t_i}$.
