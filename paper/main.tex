@@ -4960,6 +4960,53 @@ it maps each belief $\bar{w} \in [0,1]^k$ to the
 optimal control $\tau^*(\bar{w}) \in \R^2$.
 \end{definition}
 
+\begin{remark}[Softmax field on belief space]%
+\label{rem:softmax-field}
+\color{black!60}%
+Without the amortized King,
+the controller~(Definition~\ref{def:two-temp})
+has $\theta = (\theta_{\mathrm{UV}}, \theta_{\mathrm{IR}})
+\in \R^2$---a constant vector, not a field.
+The amortized King promotes it to a map
+$f_\theta \colon [0,1]^k \to \R^2$---an MLP,
+i.e.\ a deterministic gauge field on belief space
+(Proposition~\ref{prop:gauge}).
+
+Composing with the two nested softmaxes gives the
+\emph{softmax field}:
+\[
+  \bar{w}
+  \;\xmapsto{\;f_\theta\;}
+  (\tau_{\mathrm{IR}},\, \tau_{\mathrm{UV}})
+  \;\xmapsto{\;\softmax\;}
+  (\pi_f,\, \pi_{\mathrm{scale}}).
+\]
+The field's value at each belief $\bar{w}$ is not
+a number---it is a \emph{Boltzmann distribution}.
+Each softmax is a partition function
+(Definition~\ref{def:transcommutation}):
+\[
+  \pi_f
+  = \frac{e^{\,\log \bar{w}\,/\,\tau_{\mathrm{IR}}}}
+         {Z_{\mathrm{IR}}},
+  \qquad
+  \pi_{\mathrm{scale}}
+  = \frac{e^{\,\hat{V}\,/\,\tau_{\mathrm{UV}}}}
+         {Z_{\mathrm{UV}}},
+\]
+where $Z_{\mathrm{IR}}, Z_{\mathrm{UV}}$ are the
+normalising constants.
+The composed map
+$\bar{w} \mapsto (\pi_f, \pi_{\mathrm{scale}})$
+is the same structure as $z = \sigma(Wx)$
+(Proposition~\ref{prop:gauge}):
+MLP weights determine the field,
+softmax determines the distribution,
+and the free energy
+$\cL = -\pi_{\mathrm{scale}}^\top \hat{V}$
+is the invariant under reparametrisation of~$\theta$.
+\end{remark}
+
 \begin{remark}[Distillation as RG flow]%
 \label{rem:rg-distillation}
 \color{black!60}%
