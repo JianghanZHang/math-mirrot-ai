@@ -2827,6 +2827,43 @@ Complexity did not disappear.
 It changed representation.
 \end{remark}
 
+\begin{definition}[Transcommutation and redundancy threshold]%
+\label{def:transcommutation}
+Two representations $R_1, R_2$ of a system~$S$ are
+\emph{transcommutational} if there exists an invariant~$I$
+such that
+\[
+  I(R_1) \;=\; I(R_2)
+  \qquad\text{and}\qquad
+  \Delta(R_1) \;\times\; \Delta(R_2)
+  \;\geq\;
+  \mathrm{const}(I).
+\]
+The \emph{redundancy threshold} is defined by this invariant:
+\begin{itemize}[nosep]
+\item \textbf{Below threshold} (transcommutational):
+  $R_1$ and $R_2$ differ only in encoding.
+  The invariant~$I$ is preserved.
+  The choice between them is a \emph{convention}, not a
+  semantic claim.
+  Example: Standard Go $\leftrightarrow$ Drunk Go
+  (topology preserved); ``colour'' $\leftrightarrow$ ``color''
+  (meaning preserved).
+\item \textbf{Above threshold} (semantic contradiction):
+  $I(R_1) \neq I(R_2)$.
+  The invariant itself has changed.
+  This is a real inconsistency that must be resolved.
+  Example: describing ``background colours'' when the
+  system uses left bars; truncating primes in an Euler
+  product (the library burns).
+\end{itemize}
+\noindent
+The threshold \emph{is} transcommutation.
+If two descriptions are related by a basis change,
+normalise as preference.
+If they are not, fix the contradiction.
+\end{definition}
+
 \begin{definition}[Self-dual game]\label{def:self-dual}
 A two-player game~$\Gamma$ with state evolution operator
 $\cF_t$ (forward) and value prediction operator
