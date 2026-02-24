@@ -6847,12 +6847,12 @@ for the tunnelling,
 not an existence proof.
 \end{remark}
 
-\begin{remark}[Structural knowledge and maneuverability]
+\begin{remark}[Structural knowledge and manoeuvrability]
 \label{rem:structural-knowledge}
 The Drunk kernel $\rho^*$
 (Definition~\ref{def:student-t-policy})
-carries two pieces of \emph{a priori} knowledge
-that no purely data-driven policy possesses:
+encodes two pieces of \emph{a priori} knowledge
+that no data-driven policy possesses:
 \begin{enumerate}[nosep]
 \item the \textbf{contact alphabet}
   $\cC = \{0,1\}^4$
@@ -6861,10 +6861,10 @@ that no purely data-driven policy possesses:
   $K_{\mathrm{loco}}$
   (Definition~\ref{def:viability-locomotion}).
 \end{enumerate}
-Together these define a finite reachability problem:
+Together these define a finite directed graph:
 $16$ contact modes connected by transitions
-that the Euler--Lagrange dynamics permits.
-\emph{Maneuverability} is reachability on this graph.
+that the Euler--Lagrange dynamics admits.
+\emph{Manoeuvrability} is reachability on this graph.
 
 A diffusion policy
 $\pi_\theta\colon s \mapsto p(a \mid s)$,
@@ -6878,7 +6878,7 @@ When the robot encounters a state
 outside $D$'s support---novel terrain,
 external perturbation, actuator degradation---the
 policy has no mechanism to verify
-whether the contact mode it produces is viable.
+whether the resulting contact mode is viable.
 
 The Drunk does not learn gaits.
 The Student-$t$ tails
@@ -6904,11 +6904,11 @@ on ``how I usually land''
 has a statistical summary of landings,
 not the constraint that forces them.
 
-The maneuverability gap is exponential
+The manoeuvrability gap is exponential
 in the number of feet.
 The contact lattice has $2^n$ modes.
-A finite demonstration set covers
-at most $|D|$ state-mode pairs.
+A finite demonstration set visits
+finitely many state-mode pairs.
 Full viability coverage requires
 demonstrations from all $2^n$ modes
 under all reachable states---exponential in~$n$.
